@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable max-len */
 class AJS {
 	constructor(value) {
 		this.value = value
@@ -218,9 +220,10 @@ class AJS {
 	// M.chainRec((next, done, v) => p(v) ? d(v).map(done) : n(v).map(next), i) is equivalent to (function step(v) { return p(v) ? d(v) : n(v).chain(step); }(i)) (equivalence)
 	// Stack usage of M.chainRec(f, i) must be at most a constant multiple of the stack usage of f itself.
 
-	chainRec(f, i) {
+	chainRec() {
 		// ChainRec m => ((a -> c, b -> c, a) -> m c, a) -> m b
 		// return AJS.of()
+		return this
 	}
 
 	// Monad
@@ -268,7 +271,7 @@ class AJS {
 	}
 }
 
-const log = console.log
+const { log } = console
 
 const ajsEmptyA = AJS.empty()
 const ajsZeroA = AJS.zero()
