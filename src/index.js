@@ -9,12 +9,8 @@ class AJS {
 		return this.value(x)
 	}
 
-	prorun(x) {
-		return [this.value[0](x), this.value[1]]
-	}
-
 	static get emptyValue() {
-		return undefined
+		return 0
 	}
 
 	static get zeroValue() {
@@ -140,13 +136,13 @@ class AJS {
 
 	ap(apply) {
 		// Apply f => f a ~> f (a -> b) -> f b
-		return typeof this.value === 'function'
+		return typeof apply.value === 'function'
 			? (apply.isZero()
 				? AJS.zero()
-				: AJS.of(this.value(apply.value)))
+				: AJS.of(apply.value(this.value)))
 			: apply.isZero()
 				? AJS.zero()
-				: AJS.of(apply.value(this.value))
+				: AJS.of(this.value(apply.value))
 	}
 
 	// Applicative
@@ -249,6 +245,13 @@ class AJS {
 		// Comonad w => w a ~> () -> a
 		return this.value
 	}
+}
+
+class AJS_BI {
+	constructor(first, second) {
+		this.first = first
+		this.second = second
+	}
 
 	// Bifunctor
 
@@ -257,7 +260,7 @@ class AJS {
 
 	bimap(f, g) {
 		// Bifunctor f => f a c ~> (a -> b, c -> d) -> f b d
-		return AJS.of([f(this.value[0]), g(this.value[1])])
+		return AJS_BI.of(f(this.first), g(this.second))
 	}
 
 	// Profunctor
@@ -267,7 +270,23 @@ class AJS {
 
 	promap(f, g) {
 		// Profunctor p => p b c ~> (a -> b, c -> d) -> p a d
-		return AJS.of([x => this.value[0](f(x)), g(this.value[1])])
+		return AJS_BI.of(x => this.first(f(x)), g(this.second))
+	}
+
+	// Applicative
+
+	// v.ap(A.of(x => x)) is equivalent to v (identity)
+	// A.of(x).ap(A.of(f)) is equivalent to A.of(f(x)) (homomorphism)
+	// A.of(y).ap(u) is equivalent to u.ap(A.of(f => f(y))) (interchange)
+
+	static of(first, second) {
+		// Applicative f => (a, b) -> f (a, b)
+		return new AJS_BI(first, second)
+	}
+
+	prorun(x) {
+		this.first(x)
+		return this
 	}
 }
 
@@ -281,6 +300,36 @@ const ajs1B = AJS.of(1)
 const ajs2A = AJS.of(2)
 const ajs1C = AJS.of(1)
 const ajs3A = AJS.of(3)
+
+const ajsInc = AJS.of(x => x + 1)
+const ajsDouble = AJS.of(x => x * 2)
+const ajsDec = AJS.of(x => x - 1)
+
+const p = x => x > 1
+const q = x => x < 3
+
+const f = x => x + 1
+const g = x => x * 2
+
+const ajsId = AJS.of(AJS.identity)
+
+const add = (x, y) => x + y
+
+const ajsTraversable = AJS.of(ajs1A)
+const fTraversable = t => AJS.of(t.value)
+
+const fChain = x => AJS.of(x + 1)
+const gChain = x => AJS.of(x * 2)
+
+const fExtend = x => x.value + 1
+const gExtend = x => x.value * 2
+
+const ajsBimapA = AJS_BI.of(1, 2)
+const h = x => x / 2
+const i = x => x - 1
+
+const ajsPromapA = AJS_BI.of(() => 1, 2)
+
 // log(ajs1A.equals(ajs1A) === true)
 // log(ajs1A.equals(ajs1B) === ajs1B.equals(ajs1A))
 // log(ajs1A.equals(ajs2A) === ajs2A.equals(ajs1A))
@@ -290,39 +339,28 @@ const ajs3A = AJS.of(3)
 // log(ajs1A.lte(ajs1B) && ajs1B.lte(ajs1A) && ajs1A.equals(ajs1B))
 // log(ajs1A.lte(ajs2A) && ajs2A.lte(ajs3A) && ajs1A.lte(ajs3A))
 
-const ajsInc = AJS.of(x => x + 1)
-const ajsDouble = AJS.of(x => x * 2)
-const ajsDec = AJS.of(x => x - 1)
-
-// log(ajsInc.compose(AJS.id()).value(1), ajsInc.value(1))
-// log(AJS.id().compose(ajsInc).value(1), ajsInc.value(1))
+// log(ajsInc.compose(AJS.id()).value(1) === ajsInc.value(1))
+// log(AJS.id().compose(ajsInc).value(1) === ajsInc.value(1))
 
 // log(ajs1A.concat(ajs2A).concat(ajs3A).equals(ajs1A.concat(ajs2A.concat(ajs3A))))
 
-// log(ajs1A.concat(AJS.empty()).equals(ajs1A))
-// log(AJS.empty().concat(ajs1A).equals(ajs1A))
+// log(ajs1A.concat(ajsEmptyA).equals(ajs1A))
+// log(ajsEmptyA.concat(ajs1A).equals(ajs1A))
 
-// log(ajs1A.concat(ajs1A.invert()).equals(AJS.empty()))
-// log(ajs1A.invert().concat(ajs1A).equals(AJS.empty()))
+// log(ajs1A.concat(ajs1A.invert()).equals(ajsEmptyA))
+// log(ajs1A.invert().concat(ajs1A).equals(ajsEmptyA))
 
-const p = x => x > 1
-const q = x => x < 3
 
 // log(ajs2A.filter(x => p(x) && q(x)).equals(ajs2A.filter(p).filter(q)))
 // log(ajs1A.filter(() => true).equals(ajs1A))
 // log(ajs1A.filter(() => false).equals(ajs1B.filter(() => false)))
 
-const f = x => x + 1
-const g = x => x * 2
 
 // log(ajs1A.map(AJS.identity).equals(ajs1A))
 // log(ajs1A.map(x => f(g(x))).equals(ajs1A.map(g).map(f)))
 
-const ajsId = AJS.of(x => x)
-
 // log(ajsId.contramap(AJS.identity).run(1) === ajsId.run(1))
 // log(ajsId.contramap(x => f(g(x))).run(1) === ajsId.contramap(f).contramap(g).run(1))
-
 
 // log(ajs1A.ap(AJS.of(x => x)).equals(ajs1A))
 // log(AJS.of(1).ap(AJS.of(f)).equals(AJS.of(f(1))))
@@ -338,22 +376,13 @@ const ajsId = AJS.of(x => x)
 // log(ajsInc.ap(ajsZeroA.alt(ajs1A)).equals(ajsInc.ap(ajsZeroA).alt(ajsInc.ap(ajs1A))))
 // log(ajsInc.ap(AJS.zero()).equals(AJS.zero()))
 
-const add = (x, y) => x + y
-
 // log(ajs1A.reduce(add, 1) === ajs1A.reduce((acc, x) => acc.concat([x]), []).reduce(add, 1))
-
-const ajsTraversable = AJS.of(ajs1A)
-const fTraversable = t => AJS.of(t.value)
 
 // log(
 // 	fTraversable(ajsTraversable.traverse(AJS, AJS.identity)).value
 // 		.equals(ajsTraversable.traverse(AJS, fTraversable).value)
 // )
 // log(ajs1A.traverse(AJS, AJS.of).value.equals(AJS.of(ajs1A).value))
-// log(u.traverse(Compose, x => new Compose(x)), new Compose(u.traverse(F, x => x).map(x => x.traverse(G, x => x))))
-
-const fChain = x => AJS.of(x + 1)
-const gChain = x => AJS.of(x * 2)
 
 // log(
 // 	ajs1A.chain(fChain).chain(gChain).equals(
@@ -364,22 +393,15 @@ const gChain = x => AJS.of(x * 2)
 // log(AJS.of(1).chain(fChain).equals(fChain(1)))
 // log(ajs1A.chain(AJS.of).equals(ajs1A))
 
-const fExtend = x => x.value + 1
-const gExtend = x => x.value * 2
-
 // log(ajs1A.extend(gExtend).extend(fExtend).equals(ajs1A.extend(_w => fExtend(_w.extend(gExtend)))))
 
 // log(ajs1A.extend(_w => _w.extract()).equals(ajs1A))
 // log(ajs1A.extend(fExtend).extract() === fExtend(ajs1A))
 
-const ajsBimapA = AJS.of([1, 2])
-const h = x => x / 2
-const i = x => x - 1
+// log(ajsBimapA.bimap(AJS.identity, AJS.identity).first === ajsBimapA.first
+// 	&& ajsBimapA.bimap(AJS.identity, AJS.identity).second === ajsBimapA.second)
+// log(ajsBimapA.bimap(x => f(g(x)), x => h(i(x))).first === ajsBimapA.bimap(g, i).bimap(f, h).first
+// 	&& ajsBimapA.bimap(x => f(g(x)), x => h(i(x))).second === ajsBimapA.bimap(g, i).bimap(f, h).second)
 
-// log(ajsBimapA.bimap(AJS.identity, AJS.identity).value.join('') === ajsBimapA.value.join(''))
-// log(ajsBimapA.bimap(x => f(g(x)), x => h(i(x))).value.join('') === ajsBimapA.bimap(g, i).bimap(f, h).value.join(''))
-
-const ajsPromapA = AJS.of([() => 1, 2])
-
-// log(ajsPromapA.promap(AJS.identity, AJS.identity).prorun().join('') === ajsPromapA.prorun().join(''))
-// log(ajsPromapA.promap(a => f(g(a)), b => h(i(b))).prorun().join('') === ajsPromapA.promap(f, i).promap(g, h).prorun().join(''))
+// log(ajsPromapA.promap(AJS.identity, AJS.identity).prorun().first(1) === ajsPromapA.prorun().first(1))
+// log(ajsPromapA.promap(a => f(g(a)), b => h(i(b))).prorun().first(1) === ajsPromapA.promap(f, i).promap(g, h).prorun().first(1))
