@@ -1,46 +1,30 @@
 {
-<<<<<<< HEAD
   "name": "ajs",
   "version": "1.0.0",
   "description": "Algebraic Javascript Specification",
   "main": "index.js",
-  "scripts": {
-    "serve": "webpack-dev-server -c wepback.config.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "",
   "license": "ISC",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build --production",
+    "safe-install": "npm i && node dev/sweeper.fix.js"
+  },
   "dependencies": {
-    "@totalsoft/zion": "^2.3.1",
-    "monet": "^0.9.0",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10",
-    "webpack-dev-server": "^3.9.0"
+    "robocopy": "^0.1.16",
+    "stylus-loader": "^3.0.2",
+    "vue": "^2.6.10",
+    "vue-cli": "^2.9.6"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-eslint": "^3.11.0",
+    "@vue/cli-plugin-unit-jest": "^3.11.0",
+    "@vue/cli-service": "^3.12.1",
+    "@vue/eslint-config-airbnb": "^4.0.0",
+    "@vue/test-utils": "1.0.0-beta.29",
+    "eslint": "^5.16.0",
+    "eslint-plugin-vue": "^5.0.0",
+    "vue-template-compiler": "^2.6.10"
   }
-=======
-	"name": "vue-master",
-	"version": "0.1.0",
-	"private": true,
-	"scripts": {
-		"serve": "vue-cli-service serve",
-		"build": "vue-cli-service build --production",
-		"safe-install": "npm i && node dev/sweeper.fix.js"
-	},
-	"dependencies": {
-		"robocopy": "^0.1.16",
-		"stylus-loader": "^3.0.2",
-		"vue": "^2.6.10",
-		"vue-cli": "^2.9.6"
-	},
-	"devDependencies": {
-		"@vue/cli-plugin-eslint": "^3.11.0",
-		"@vue/cli-plugin-unit-jest": "^3.11.0",
-		"@vue/cli-service": "^3.12.1",
-		"@vue/eslint-config-airbnb": "^4.0.0",
-		"@vue/test-utils": "1.0.0-beta.29",
-		"eslint": "^5.16.0",
-		"eslint-plugin-vue": "^5.0.0",
-		"vue-template-compiler": "^2.6.10"
-	}
->>>>>>> a951e33160aaa5e8b707c830f60c97d01ef52bd7
 }

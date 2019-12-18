@@ -1,3 +1,5 @@
+import { pipeline } from 'stream'
+
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-len */
 class AJS {
@@ -424,11 +426,7 @@ const ajsPromapA = AJS_BI.of(() => 1, 2)
 
 class AJS_LAZY {
 	constructor(f) {
-		this.f = f === undefined ? AJS_LAZY.identity : f
-	}
-
-	static identity(x) {
-		return x
+		this.f = f
 	}
 
 	static of(x) {
@@ -439,28 +437,21 @@ class AJS_LAZY {
 		return AJS_LAZY.of(x => f(this.f(x)))
 	}
 
-	ap(apply) {
-		// Apply f => f a ~> f (a -> b) -> f b
-		return AJS_LAZY.of(this.value(apply.value))
+	contramap(f) {
+		return AJS_LAZY.of(x => this.f(f(x)))
 	}
 
 	fork(x) {
-		return this.run(x)
-	}
-
-	run(x) {
 		return this.f(x)
 	}
 }
 
-const request = (res, rej) => setTimeout(() => Math.random() > 0.5 ? res('done') : rej('fail'), 100)
 
-// log(
-// 	AJS_LAZY
-// 		.of()
-// 		// .map(asyncF)
-// 		.run(1)
-// )
+const request = (res, rej) => setTimeout(() => Math.random() > 0.5 ? res('done') : rej('fail'), 100)
+const requestPureResTrue = (res, rej) => res(true)
+const requestPureResFalse = (res, rej) => res(false)
+const requestPureRejTrue = (res, rej) => rej(true)
+const requestPureRejFalse = (res, rej) => rej(false)
 
 class Task {
 	constructor(f) {
@@ -471,17 +462,34 @@ class Task {
 		return new Task(f)
 	}
 
-	map(f) {
-		console.log(1);
+	equals(setoid) {
+		// Setoid a => a ~> a -> Boolean
+		return Task.of(
+			(res, rej) => this.fork(
+				x => setoid.fork(
+					y => res(x === y),
+					y => rej(x === y)
+				),
+				x => setoid.fork(
+					y => res(x === y),
+					y => rej(x === y)
+				),
+			)
+		)
+	}
 
+	map(f) {
+		// Functor f => f a ~> (a -> b) -> f b
 		return Task.of((res, rej) => this.fork(x => res(f(x)), rej))
 	}
 
 	ap(apply) {
+		// Apply f => f a ~> f (a -> b) -> f b
 		return Task.of((res, rej) => this.fork(apply.fork(res, rej), rej))
 	}
 
 	chain(f) {
+		// Chain m => m a ~> (a -> m b) -> m b
 		return Task.of((res, rej) => this.fork(x => f(x).fork(res, rej), rej))
 	}
 
@@ -495,9 +503,58 @@ class Task {
 	}
 }
 
+const plus3 = x => x + 3
+const mul3 = x => x * 3
+
+console.log(AJS_LAZY
+	.of(x => x)
+	.contramap(plus3)
+	.contramap(mul3)
+	.fork(1)
+)
+
+const taskResTrue = Task.of(requestPureResTrue)
+const taskResFalse = Task.of(requestPureResFalse)
+const taskRejTrue = Task.of(requestPureRejTrue)
+const taskRejFalse = Task.of(requestPureRejFalse)
+
+// taskResTrue.equals(taskResTrue)
+// 	.fork(console.log, console.error)
+
+// taskResFalse.equals(taskResFalse)
+// 	.fork(console.log, console.error)
+
+// taskRejTrue.equals(taskRejTrue)
+// 	.fork(console.log, console.error)
+
+// taskRejFalse.equals(taskRejFalse)
+// 	.fork(console.log, console.error)
+
+
+// u.map(x => f(g(x))) is equivalent to u.map(g).map(f)
+
+// taskResTrue
+// 	.map(x => plus3(mul3(x)))
+// 	.fork(console.log, console.error)
+
+taskResTrue
+	.map(x => 1)
+	.map(mul3)
+	.map(plus3)
+	.fork(console.log, console.error)
+
+// taskResTrue
+// 	.map(x => plus3(mul3(x)))
+// 	.equals(taskResTrue
+// 		.map(plus3)
+// 		.map(mul3)
+// 	)
+// 	.fork(console.log, console.error)
+
 Task
 	.of(request)
 	// .map(x => `---${x}---`)
 	// .ap(Task.of((res, rej) => x => res(`---${x}---`)))
+	// .chain(x => Task.of((res, rej) => res(`---${x}---`)))
 	// .log()
-	.fork(console.log, console.error)
+	// .fork(console.log, console.error)
