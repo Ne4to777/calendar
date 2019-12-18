@@ -444,6 +444,10 @@ class AJS_LAZY {
 		return AJS_LAZY.of(this.value(apply.value))
 	}
 
+	fork(x) {
+		return this.run(x)
+	}
+
 	run(x) {
 		return this.f(x)
 	}
@@ -468,11 +472,15 @@ class Task {
 	}
 
 	map(f) {
-		return Task.of((resolve, reject) => this.run(x => resolve(f(x)), reject))
+		return Task.of((resolve, reject) => this.fork(x => resolve(f(x)), reject))
 	}
 
 	ap(apply) {
-		return Task.of((resolve, reject) => this.run(x => resolve(apply.run(x)), reject))
+		return Task.of((resolve, reject) => this.fork(apply.fork(resolve, reject), reject))
+	}
+
+	chain(f) {
+		return Task.of((resolve, reject) => this.fork(x => f(x).fork(resolve, reject), reject))
 	}
 
 	fork(resolve, reject) {
@@ -492,6 +500,6 @@ class Task {
 Task
 	.of(request)
 	// .map(x => `---${x}---`)
-	.ap(AJS_LAZY.of(x => `---${x}---`))
+	.ap(Task.of((resolve, reject) => x => resolve(`---${x}---`)))
 	// .log()
 	.fork(console.log, console.error)
