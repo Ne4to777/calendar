@@ -6,10 +6,6 @@ const sourceServerFilenameToRename = './node_modules/@vue/cli-service/lib/config
 const targetServerFilenameToRename = './node_modules/@vue/cli-service/lib/config/index-default.xhtml'
 const sourceServerFilenameToWrite = './node_modules/@vue/cli-service/lib/config/app.js'
 
-const sourceProxyFilenameToRename = './node_modules/sp-rest-proxy/static/index.html'
-const targetProxyFilenameToRename = './node_modules/sp-rest-proxy/static/index.xhtml'
-const sourceProxyFilenameToWrite = './node_modules/sp-rest-proxy/dist/core/routers/genericGet.js'
-
 const demoWCHTML = './node_modules/@vue/cli-service/lib/commands/build/demo-wc.html'
 const demoWCXHTML = './node_modules/@vue/cli-service/lib/commands/build/demo-wc.xhtml'
 const demoWCJS = './node_modules/@vue/cli-service/lib/commands/build/resolveWcConfig.js'
@@ -30,11 +26,6 @@ const write = (source, result) => new Promise((resolve, reject) => fs.writeFile(
 	const dataServer = await read(sourceServerFilenameToWrite).catch(console.log)
 	const resultServer = dataServer.replace(/index-default\.html/, 'index-default.xhtml')
 	await write(sourceServerFilenameToWrite, resultServer).catch(console.log)
-
-	await rename(sourceProxyFilenameToRename, targetProxyFilenameToRename).catch(console.log)
-	const dataProxy = await read(sourceProxyFilenameToWrite).catch(console.log)
-	const resultProxy = dataProxy.replace(/index\.html/, 'index.xhtml')
-	await write(sourceProxyFilenameToWrite, resultProxy).catch(console.log)
 
 	await rename(demoWCHTML, demoWCXHTML).catch(console.log)
 	const dataWC = await read(demoWCJS).catch(console.log)
