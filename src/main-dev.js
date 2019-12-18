@@ -449,9 +449,7 @@ class AJS_LAZY {
 	}
 }
 
-const asyncF = x => setTimeout(() => x, 100)
-
-const request = ({ resolve, reject }) => { setTimeout(() => Math.random() >= .5 ? resolve('done') : reject('fail'), 100) }
+const request = (resolve, reject) => setTimeout(() => Math.random() > 0.5 ? resolve('done') : reject('fail'), 100)
 
 // log(
 // 	AJS_LAZY
@@ -461,33 +459,39 @@ const request = ({ resolve, reject }) => { setTimeout(() => Math.random() >= .5 
 // )
 
 class Task {
-	constructor({ resolve, reject }) {
-		this.resolve = resolve === undefined ? Task.identity : resolve
-		this.reject = reject === undefined ? Task.identity : reject
+	constructor(f) {
+		this.f = f
 	}
 
-	static identity(x) {
-		return x
-	}
-
-	static of(x) {
-		return new Task(x)
+	static of(f) {
+		return new Task(f)
 	}
 
 	map(f) {
-		return Task.of({ resolve: x => f(this.resolve(x), this.reject), reject: this.reject })
+		return Task.of((resolve, reject) => this.run(x => resolve(f(x)), reject))
 	}
 
 	ap(apply) {
-		// Apply f => f a ~> f (a -> b) -> f b
-		return Task.of(this.value(apply.value))
+		return Task.of((resolve, reject) => this.run(x => resolve(apply.run(x)), reject))
 	}
 
-	run(resolve, reject) {
-		return this.f({ resolve, reject })
+	fork(resolve, reject) {
+		return this.run(resolve, reject)
+	}
+
+	log() {
+		console.log(this)
+		return this
+	}
+
+	run(...args) {
+		return this.f(...args)
 	}
 }
 
 Task
 	.of(request)
-	.run(console.log, console.err)
+	// .map(x => `---${x}---`)
+	.ap(AJS_LAZY.of(x => `---${x}---`))
+	// .log()
+	.fork(console.log, console.error)
