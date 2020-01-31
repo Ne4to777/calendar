@@ -1264,13 +1264,11 @@ var event = {
 		},
 		custom: function (params) {
 			if (!params) params = {}
-			return new CalendarEvent({
+			return {
 				key: u.either(params.key, u.random(1000000)),
 				beginDate: params.beginDate,
 				endDate: params.endDate,
-				timing: u.either(params.timing, u.random(2)),
-				stage: u.either(params.stage, u.random(4))
-			})
+			}
 		}
 	},
 	month: {
@@ -1398,7 +1396,7 @@ var event = {
 
 var calendar = new AuraCalendar({
 	container: '#calendar',
-	view: 'month',
+	view: 'year',
 	getTitle: function () {
 		return this.getKey()
 	},
@@ -1406,7 +1404,7 @@ var calendar = new AuraCalendar({
 		return this
 	},
 	getColor: function () {
-		return 'rgb(46, 115, 180)'
+		// return 'rgb(46, 115, 180)'
 		return u.color()
 		return '#' + this.getKey().toString(16).slice(0, 7)
 		return '#111111'
@@ -1417,7 +1415,4 @@ console.log(calendar)
 
 calendar.render()
 
-calendar.insertEvent([
-	event.month.inside(),
-
-])
+calendar.insertEvent(event.year.bulk())

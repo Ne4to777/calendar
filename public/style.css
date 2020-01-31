@@ -144,9 +144,7 @@ table {
 	cursor: pointer;
 }
 
-.aura-calendar__event-filler_year {
-	position: relative;
-}
+.aura-calendar__event-filler_year {}
 
 .aura-calendar__body-cell_item:first-child .aura-calendar__event-filler {
 	margin-left: -4px;
