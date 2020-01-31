@@ -1,34 +1,9 @@
-# vue master app
-
-## Project setup
-```
-npm install
-```
-
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Run your unit tests
-```
-npm run test:unit
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+Пожелания:
+1. Чтобы у событий в календаре было событие onHover
+2. Указывать высоту события в календаре. - height: '120px';
+3. Назначать событию свой класс
+4. Переключение между: Год / Месяц / Неделя / День - можно было бы сделать как в бронировании переговорок
+5. Было бы прикольно, если бы месяца отображались как в разделе "Бронирование переговорок"
+6. Было бы круто, если бы календарь подсвечивал выходные и праздничные дни другим цветом.
+7. Возможность повесить функцию на клик по дате (не клик по событию, а по дате)
+8. Сделать "animateLoad - true/false", чтобы "крутилка" отображалась до тех пор, пока не отобразятся все events на календаре.
