@@ -1,0 +1,276 @@
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+.aura-calendar {
+	position: relative;
+}
+
+.aura-calendar__grid {
+	margin-top: 20px
+}
+
+.aura-calendar__table {
+	width: 100%;
+	table-layout: fixed;
+}
+
+.aura-calendar__table tr {
+	position: relative;
+}
+
+.aura-calendar__head {}
+
+.aura-calendar__head-cell {
+	padding: 10px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: #848484;
+	font-weight: bold;
+}
+
+.aura-calendar__body {}
+
+.aura-calendar__head-row_year {
+	cursor: pointer;
+}
+
+.aura-calendar__body-cell {
+	border: 1px solid #E6E6E6;
+}
+
+.aura-calendar__head-cell {
+	text-align: center
+}
+
+.aura-calendar__head-cell_year:hover {
+	color: #68B3FF
+}
+
+.aura-calendar__head-cell_current {
+	color: #68B3FF
+}
+
+.aura-calendar__body_month, .aura-calendar__body-row_year {
+	border-top: 1px solid #E6E6E6;
+	border-bottom: 1px solid #E6E6E6;
+}
+
+.aura-calendar__body-cell_month, .aura-calendar__body-cell_year {
+	position: relative;
+	vertical-align: top;
+	border-left: 1px solid #E6E6E6;
+	border-right: 1px solid #E6E6E6;
+	height: 1px;
+	padding-bottom: 10px;
+}
+
+.aura-calendar__body-cell_year {
+	padding-top: 10px
+}
+
+.aura-calendar__body-cell_year:empty {
+	padding-bottom: 10px
+}
+
+.aura-calendar__body-cell_head {
+	padding: 10px 0;
+}
+
+.aura-calendar__body-row_year {
+	padding-top: 10px
+}
+
+.aura-calendar__day-number {
+	display: inline-block;
+	height: 30px;
+	width: 30px;
+	margin-left: 10px;
+	line-height: 32px;
+	position: relative;
+	text-align: center;
+	user-select: none;
+}
+
+.aura-calendar__body-cell_muted .aura-calendar__day-number {
+	color: #989b9d;
+}
+
+.aura-calendar__body-cell_active .aura-calendar__day-number {
+	display: inline-block;
+	background-color: #68B3FF;
+	border-radius: 50% 50%;
+	color: white;
+}
+
+.aura-calendar__day-number_muted.aura-calendar__day-number_active {
+	background-color: #989b9d;
+}
+
+.aura-calendar__body-cell {
+	padding: 10px 0;
+	vertical-align: top
+}
+
+.position_absolute {
+	position: absolute !important;
+}
+
+.position_relative {
+	position: relative !important;
+}
+
+.aura-calendar__event {
+	height: calc(100%)
+}
+
+.height_auto {
+	height: auto !important;
+}
+
+.aura-calendar__event_fixed {
+	height: 20px;
+}
+
+.aura-calendar__event-filler {
+	position: absolute;
+	left: 0;
+	right: 0;
+	background-color: gold;
+	margin-right: -1px;
+	margin-left: -1px;
+	cursor: pointer;
+}
+
+.aura-calendar__event-filler_year {
+	position: relative;
+}
+
+.aura-calendar__body-cell_item:first-child .aura-calendar__event-filler {
+	margin-left: -4px;
+	z-index: 1;
+}
+
+.aura-calendar__body-cell_item:first-child .aura-calendar__event-filler_first {
+	margin-left: 1px;
+}
+
+.aura-calendar__body-cell_item:last-child .aura-calendar__event-filler {
+	margin-right: -4px;
+}
+
+.aura-calendar__body-cell_item:last-child .aura-calendar__event-filler_last {
+	margin-right: 1px;
+}
+
+.aura-calendar__event-filler_first {
+	border-top-left-radius: 4px;
+	border-bottom-left-radius: 4px;
+	margin-left: 1px;
+	z-index: 1;
+}
+
+.aura-calendar__event-filler_last {
+	border-top-right-radius: 4px;
+	border-bottom-right-radius: 4px;
+	margin-right: 1px
+}
+
+.aura-calendar__event-title {
+	position: relative;
+	display: list-item;
+	overflow: hidden;
+	padding: 5px 10px 5px 0;
+	text-overflow: ellipsis;
+	line-height: 16px;
+	font-size: 12px;
+	z-index: 1;
+	cursor: pointer;
+	box-sizing: border-box;
+	border-radius: 4px;
+}
+
+.aura-calendar__event-title_fixed {
+	white-space: nowrap;
+}
+
+.text-color_white {
+	color: white
+}
+
+.text-color_black {
+	color: black
+}
+
+.aura-calendar__date-picker {
+	position: relative;
+	display: inline-block;
+}
+
+.aura-calendar-date-picker__arrow {
+	display: inline-block;
+	vertical-align: middle;
+	top: 5px;
+	width: 0;
+	height: 0;
+	border-top: 15px solid transparent;
+	border-bottom: 15px solid transparent;
+	cursor: pointer;
+	user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+}
+
+.aura-calendar-date-picker__arrow_left {
+	border-right: 16px solid #ddd;
+}
+
+.aura-calendar-date-picker__arrow_right {
+	border-left: 16px solid #ddd;
+}
+
+.aura-calendar-date-picker__date {
+	display: inline-block;
+	vertical-align: middle;
+	padding: 0 10px;
+	user-select: none;
+}
+
+.aura-calendar__button {
+	height: 34px;
+	line-height: 34px;
+	min-width: 100px;
+	padding: 0px 20px 0px 20px;
+	margin: 0 0 0 10px;
+	display: inline-block;
+	text-align: center;
+	border-radius: 4px 4px;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: 0.2s;
+	border: 1px solid transparent;
+	box-sizing: border-box;
+	position: relative;
+}
+
+.aura-calendar__button_year, .aura-calendar__button_today {
+	background-color: #68B3FF;
+	color: #FFFFFF;
+}
+
+.aura-calendar__button:hover {
+	opacity: 0.8;
+}
+
+.aura-calendar__buttons {
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+
+.padding-left_10px {
+	padding-left: 10px;
+}

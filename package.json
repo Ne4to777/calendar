@@ -12,6 +12,7 @@
     "safe-install": "npm i && node dev/sweeper.fix.js"
   },
   "dependencies": {
+    "jquery": "^3.4.1",
     "robocopy": "^0.1.16",
     "stylus-loader": "^3.0.2",
     "vue": "^2.6.10",
