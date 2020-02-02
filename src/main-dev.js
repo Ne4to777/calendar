@@ -64,20 +64,23 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 			this.grid.render(params)
 		},
 		clear: function () { this.grid.clear() },
+		getEvent: function (key) {
+			this.grid.getItem(key)
+		},
 		insertEvent: function (data) {
 			var u = AuraCalendar.utilities
-			var items
-			if (u.isArray(data)) {
-				items = data.map(getEventIteratorInstance.bind(this))
-			} else {
-				items = [getEventIteratorInstance.call(this, data)]
-			}
+			var items = u.isArray(data)
+				? data.map(getEventIteratorInstance.bind(this))
+				: [getEventIteratorInstance.call(this, data)]
 			this.grid.insertItem(items)
 		},
 		removeEvent: function (instance) { this.grid.removeItem(instance) },
 		setState: function (state) {
 			this.state = state
 		},
+		removeEmptyRows: function () {
+			this.grid.removeEmptyRows()
+		}
 	}
 
 	// Internal
@@ -121,7 +124,7 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 			getDescription: this.params.getDescription,
 			getColor: this.params.getColor,
 			onItemClick: function (event) {
-				it.params.on.eventClick.call(it, event)
+				it.params.on.eventClick.call(it.params.parent, event)
 			}
 		})
 	}
@@ -171,12 +174,16 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 	}
 	function updateTodayButton() {
 		var now = new Date()
-		this.$.buttons.today[this.state.date.getMonth() === now.getMonth() && this.state.date.getFullYear() === now.getFullYear() ? 'hide' : 'show']()
+		this.$.buttons.today[
+			this.state.date.getMonth() === now.getMonth()
+				&& this.state.date.getFullYear() === now.getFullYear()
+				? 'hide'
+				: 'show']()
 	}
 	function getEventIteratorInstance(item) {
 		return item instanceof AuraCalendar.EventIterator
 			? item
-			: new AuraCalendar.EventIterator(item, {
+			: new AuraCalendar.EventIterator(this, item, {
 				getTitle: this.params.getTitle,
 				getDescription: this.params.getDescription,
 				getColor: this.params.getColor
@@ -204,7 +211,6 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		var u = AuraCalendar.utilities
 		var functionValidator = u.functionValidator
 		this.itemsMap = {}
-		this.items = []
 		this.isIE10orLess = u.isIE10orLess()
 		this.params = {
 			parent: params.parent,
@@ -237,125 +243,125 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		NAMES: {
 			VIEWS: ['year', 'month'],
 			DAYS: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-			MONTHES: ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
+			MONTHES: [
+				'Январь',
+				'Февраль',
+				'Март',
+				'Апрель',
+				'Май',
+				'Июнь',
+				'Июль',
+				'Август',
+				'Сентябрь',
+				'Октябрь',
+				'Ноябрь',
+				'Декабрь'
+			],
+			HOURS: [
+				'00', '01', '02', '03', '04', '05',
+				'06', '07', '08', '09', '10', '11',
+				'12', '13', '14', '15', '16', '17',
+				'18', '19', '20', '21', '22', '23'
+			]
 		},
 		setState: function (state) {
 			this.params.parent.setState(state)
 		},
-		render: function (params) {
-			if (!params) params = {}
-			if (params.date || params.view) this.setState(params)
-
+		render: function () {
 			this.$.container.html(this.$.wrapper)
-			this.params.on.render.call(this, params)
+			this.params.on.render.call(this)
 		},
 		destroy: function (params) {
 			this.params.on.destroy.call(this, params)
 			this.$.container.remove(this.$.wrapper)
 		},
+		getItem: function (key) {
+			return this.$.table.find('[data-key="' + key + '"]')
+		},
 		insertItem: function (items) {
 			var it = this
-			var u = AuraCalendar.utilities
 			var firstDateInView = this.datesRange[0]
 			var lastDateInView = this.datesRange.slice(-1)[0]
-			var datesComparator = u.datesComparator[it.state.view]
-			items.map(function (iterator) {
-				iterator.map(function (instance) {
-					var instanceIndex = instance.getInstanceIndex()
-					var key = instance.getKey()
-					var id = instance.getId()
+			var datesComparator = AuraCalendar.utilities.datesComparator[it.state.view]
 
+			items.map(function (iterator) {
+				var key = iterator.getKey()
+				it.removeItem(key)
+				it.itemsMap[key] = iterator
+				iterator.map(function (instance) {
 					var beginDate = instance.getBeginDate()
 					var endDate = instance.getEndDate()
+					console.log(beginDate, endDate);
 
 					if (!beginDate || !endDate) return
-
-					var viewConfig = [true, true]
-
-					if (it.itemsMap[id]) it.removeItem(instance)
-
 					if (datesComparator(beginDate, lastDateInView) > 0 || datesComparator(endDate, firstDateInView) < 0) return
-					if (datesComparator(beginDate, firstDateInView) < 0) viewConfig[0] = false
-					if (datesComparator(endDate, lastDateInView) > 0) viewConfig[1] = false
-					var firstCellDate = viewConfig[0] ? beginDate : firstDateInView
-					var lastCellDate = viewConfig[1] ? endDate : lastDateInView
-
-					switch (it.state.view) {
-						case 'month':
-							insertMonthItem.call(it, instance, firstCellDate, lastCellDate)
-							break
-						case 'year':
-							insertYearItem.call(it, instance, firstCellDate, lastCellDate)
-							break
-					}
-					insertItem.call(it, instance)
-
-					if (viewConfig[0] || viewConfig[1]) {
-						var $items = it.$.table
-							.find('[data-key="' + key + '"][data-instance="' + instanceIndex + '"] .aura-calendar__event-filler')
-					}
-					if (viewConfig[0]) {
-						$items
-							.first()
-							.addClass('aura-calendar__event-filler_first')
-					}
-
-					if (viewConfig[1]) {
-						$items
-							.last()
-							.addClass('aura-calendar__event-filler_last')
-					}
-
-					it.$.table
-						.find('[data-key="' + key + '"][data-instance="' + instanceIndex + '"]')
-						.off('click')
-						.click(it.params.on.itemClick.bind(it, instance))
+					var isBeganBefore = datesComparator(beginDate, firstDateInView) < 0
+					var isEndedBefore = datesComparator(endDate, lastDateInView) > 0
+					var firstCellDate = isBeganBefore ? firstDateInView : beginDate
+					var lastCellDate = isEndedBefore ? lastDateInView : endDate
+					instance.render({
+						cells: getCellsToInsert.call(it, firstCellDate, lastCellDate),
+						isBeganBefore: isBeganBefore,
+						isEndedBefore: isEndedBefore
+					})
 				})
 			})
 		},
-		removeItem: function (item) {
-			var items
-			if (!AuraCalendar.utilities.isArray(items)) {
-				items = [item]
-			}
-			for (var i = 0; i < items.length; i++) {
-				var item = items[i]
-				var key = item.getKey()
-				var instanceIndex = item.getInstanceIndex()
-				var $itemCells = this.$.table.find('[data-key="' + key + '"][data-instance="' + instanceIndex + '"]')
-				var $rows = $itemCells.parents('.aura-calendar__body-row_item')
-				if ($itemCells.length) {
-					$itemCells.remove()
-					removeItem.call(this, item)
-					$rows.each(function (i, row) {
-						var $row = $(row)
-						if (!$row.find('.aura-calendar__event-filler').length) {
-							$row.remove()
-						}
-					})
-					item.params.on.remove && item.params.on.remove.call(this, this.state)
-				}
-			}
+		removeItem: function (key) {
+			var iterator = this.itemsMap[key]
+			iterator && iterator.remove()
 		},
 		clear: function () {
-			for (var key in this.itemsMap) {
-				this.removeItem(this.itemsMap[key])
-			}
-			clearItems.call(this)
+			buildMainView.call(this)
 			this.params.on.clear.call(this)
 		},
 		stateChangeHandler: function () {
-			clearItems.call(this)
 			buildMainView.call(this)
+		},
+		removeEmptyRows: function () {
+			this.$.table
+				.find('.aura-calendar__body')
+				.each(function (i, body) {
+					$(body)
+						.find('.aura-calendar__body-row_item')
+						.each(function (i, row) {
+							var $row = $(row)
+							var $events = $row.find('.aura-calendar__event')
+							if ($row.siblings().length > 1 && !$events.length) $row.remove()
+						})
+				})
 		}
 	}
 	// Internal
+	function getCellsToInsert(firstCellDate, lastCellDate) {
+		var getter
+		switch (this.state.view) {
+			case 'year':
+				getter = getYearCellsToInsert
+				break
+			case 'month':
+				getter = getMonthCellsToInsert
+				break;
+			case 'week':
+				getter = getWeekCellsToInsert
+				break
+		}
+		return getter.call(this, firstCellDate, lastCellDate)
+	}
 
 	function buildMainView() {
+		var tableBuilder
 		var vector = []
 		var u = AuraCalendar.utilities
 		var date = this.state.date
 		switch (this.state.view) {
+			case 'year':
+				var year = date.getFullYear()
+				vector = this.NAMES.MONTHES.map(function (name, i) {
+					return new Date(year, i, 1)
+				})
+				tableBuilder = buildYear$table
+				break
 			case 'month':
 				var firstDayInView = -u.firstDayInMonth(date)
 				var lastDayInView = 6 - u.lastDayInMonth(date) + u.daysInMonth(date)
@@ -364,38 +370,28 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 					actualDate.setDate(j)
 					vector.push(actualDate)
 				}
-				this.datesRange = vector
-				this.$.table = buildMonth$table.call(this)
+				tableBuilder = buildMonth$table
 				break
-			case 'year':
-				var year = date.getFullYear()
-				vector = this.NAMES.MONTHES.map(function (name, i) {
-					return new Date(year, i, 1)
-				})
-				this.datesRange = vector
-				this.$.table = buildYear$table.call(this)
+			case 'week':
+				var dayInWeek = u.shiftSunday(date.getDay())
+				var firstDateInView = new Date()
+				firstDateInView.setDate(firstDateInView.getDate() - dayInWeek)
+				var currentDate = new Date(
+					firstDateInView.getFullYear(),
+					firstDateInView.getMonth(),
+					firstDateInView.getDate()
+				)
+				for (var i = 0; i < 7; i++) {
+					vector.push(currentDate)
+					currentDate = new Date(currentDate)
+					currentDate.setDate(currentDate.getDate() + 1)
+				}
+				tableBuilder = buildWeek$table
+				break
 		}
+		this.datesRange = vector
+		this.$.table = tableBuilder.call(this)
 		this.$.wrapper.html(this.$.table)
-	}
-
-	function insertItem(item) {
-		this.itemsMap[item.getId()] = item
-		this.items.push(item)
-	}
-
-	function removeItem(item) {
-		var index
-		var id = item.getId()
-		delete this.itemsMap[id]
-		this.items.some(function (item, i) {
-			if (id === item.getId()) index = i
-		})
-		this.items.splice(index, 1)
-	}
-
-	function clearItems() {
-		this.itemsMap = {}
-		this.items = []
 	}
 
 	function getDateQuery(params) {
@@ -403,110 +399,53 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		var yearQuery = params.year === undefined ? '' : '[data-year="' + params.year + '"]'
 		var monthQuery = params.month === undefined ? '' : '[data-month="' + params.month + '"]'
 		var dayQuery = params.day === undefined ? '' : '[data-day="' + params.day + '"]'
+		var hourQuery = params.hour === undefined ? '' : '[data-hour="' + params.hour + '"]'
 		var elQuery = params.el || ''
-		return elQuery + yearQuery + monthQuery + dayQuery
+		return elQuery + yearQuery + monthQuery + dayQuery + hourQuery
 	}
 
 
 	// YEAR
-
-	function insertYearItem(instance, firstCellDate, lastCellDate) {
-		var $rowToInsert
+	function getYearCellsToInsert(firstCellDate, lastCellDate) {
 		var it = this
-		var u = AuraCalendar.utilities
-		var $headCellsToInsert = getYear$headCellsToInsert.call(this, firstCellDate, lastCellDate)
-		var key = instance.getKey()
-		var instanceIndex = instance.getInstanceIndex()
-
-		var color = instance.getColor() || u.defaultEventColor
-		var $body = this.$.table.find('.aura-calendar__body_year')
-		var firstMonth = $headCellsToInsert.first().data('month')
-		var lastMonth = $headCellsToInsert.last().data('month')
-		$headCellsToInsert.each(function (i, headCell) {
-			var $headCell = $(headCell)
-			var month = $headCell.data('month')
-
-			if (!$rowToInsert) {
-
-				$body.find('.aura-calendar__body-row_item').each(function (i, row) {
-					var $row = $(row)
-					$rowToInsert = $row
-
-					$row.find('.aura-calendar__body-cell_item').each(function (i, cell) {
-						var $cell = $(cell)
-
-						var month = $cell.data('month')
-						if (month < firstMonth || month > lastMonth) return true
-
-						if ($cell.children().length) {
-							$rowToInsert = null
-							return false
-						}
-
-					})
-					if ($rowToInsert) return false
-				})
-
-				if (!$rowToInsert) {
-					$rowToInsert = getYear$bodyRow.call(it)
-					$body.append($rowToInsert)
+		var $table = this.$.table
+		var $rows = $table.find('.aura-calendar__body-row_item')
+		var cellsToInsertItem = []
+		var firstMonth = firstCellDate.getMonth()
+		var lastMonth = lastCellDate.getMonth()
+		$rows.each(function (i, row) {
+			var $row = $(row)
+			var currentMonth = firstMonth
+			do {
+				var $cell = $row.find('[data-month="' + currentMonth + '"]')
+				if ($cell.is(':empty')) {
+					cellsToInsertItem.push($cell)
+				} else {
+					cellsToInsertItem = []
+					break;
 				}
-			}
-
-			var titleClasses = ['aura-calendar__event-title', 'aura-calendar__event-title_fixed', 'text-color_' + (u.isColorDark(color) ? 'white' : 'black')]
-
-			var eventClasses = ['aura-calendar__event']
-			it.state.fixedRowHeight && eventClasses.push('aura-calendar__event_fixed')
-			it.isIE10orLess && eventClasses.push('height_auto')
-			var fillerClasses = ['aura-calendar__event-filler', 'aura-calendar__event-filler_year']
-			it.isIE10orLess && fillerClasses.push('position_relative')
-
-
-			$('<div/>')
-				.addClass(eventClasses.join(' '))
-				.attr('data-key', key)
-				.attr('data-instance', instanceIndex)
-				.append($('<div/>')
-					.addClass(fillerClasses.join(' '))
-					.css('background-color', color)
-					.append($('<div/>')
-						.addClass(titleClasses.join(' '))))
-				.appendTo($rowToInsert
-					.find(getDateQuery({
-						el: '.aura-calendar__body-cell_item',
-						month: month,
-					})))
+			} while (currentMonth++ < lastMonth)
+			if (cellsToInsertItem.length) return false
 		})
 
-		var $eventParts = $body.find('[data-key="' + key + '"][data-instance="' + instanceIndex + '"]')
-		var $title = $eventParts.first().find('.aura-calendar__event-title')
-		$title.html(instance.getTitle())
-		$title.addClass('padding-left_10px')
-		$title.parent().css('position', 'relative')
-		if ($eventParts.length > 1) {
-			$title.width((100 * $eventParts.length - 17) + '%')
-			$title.css('z-index', 2)
+		if (!cellsToInsertItem.length) {
+			var new$row = getYear$bodyRow.call(it)
+			$table.find('.aura-calendar__body').append(new$row)
+			var currentMonth = firstMonth
+			do {
+				var $cell = new$row.find('[data-month="' + currentMonth + '"]')
+				cellsToInsertItem.push($cell)
+			} while (currentMonth++ < lastMonth)
 		}
-	}
-
-	function getYear$headCellsToInsert(firstCellDate, lastCellDate) {
-		var nodes = []
-		var currentDate = new Date(firstCellDate)
-		currentDate.setDate(1)
-
-		while (AuraCalendar.utilities.datesComparator.year(currentDate, lastCellDate) < 1) {
-			nodes.push(this.$.table.find(getDateQuery({
-				el: '.aura-calendar__head-cell',
-				month: currentDate.getMonth()
-			})))
-			currentDate.setMonth(currentDate.getMonth() + 1)
+		return {
+			item: cellsToInsertItem,
+			title: [cellsToInsertItem]
 		}
-		return $(nodes)
 	}
 
 	function buildYear$table() {
 		var $table = getYear$table.call(this)
-		var now = new Date()
+		// var now = new Date()
 
 		// $table.find(getDateQuery({
 		// 	year: now.getFullYear(),
@@ -518,256 +457,401 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 	}
 
 	function getYear$table() {
-		var $table = $('<table class="aura-calendar__table"></table>')
-		var $head = getYear$head.call(this)
-		var $bodies = getYear$bodies.call(this)
-
-		$table.append($head, $bodies)
-		return $table
+		return $('<table/>')
+			.addClass('aura-calendar__table')
+			.append(getYear$head.call(this), getYear$bodies.call(this))
 	}
 
 	function getYear$head() {
 		var it = this
-		var $head = $('<thead class="aura-calendar__head"></thead>')
-		var $headRow = this.NAMES.MONTHES.reduce(function ($acc, name, i) {
-			$acc.append('<th class="aura-calendar__head-cell aura-calendar__head-cell_year" data-month="' + i + '">' + name + '</th>')
-			return $acc
-		}, $('<tr class="aura-calendar__head-row aura-calendar__head-row_year"></tr>'))
-
-		$head.html($headRow)
-		$headRow.off('click').click(function (e) {
-			var date = new Date(it.state.date.getFullYear(), $(e.target).data('month'), 1)
-			var view = 'month'
-			it.setState({ date: date, view: view })
-		})
-		return $head
+		return $('<thead/>')
+			.addClass('aura-calendar__head')
+			.append(this.NAMES.MONTHES.reduce(function ($acc, name, i) {
+				$('<th/>')
+					.addClass('aura-calendar__head-cell aura-calendar__head-cell_year')
+					.attr('data-month', i)
+					.text(name)
+					.appendTo($acc)
+				return $acc
+			}, $('<tr/>')
+				.addClass('aura-calendar__head-row aura-calendar__head-row_year'))
+				.off('click').click(function (e) {
+					var date = new Date(it.state.date.getFullYear(), $(e.target).data('month'), 1)
+					var view = 'month'
+					it.setState({ date: date, view: view })
+				}))
 	}
 
 	function getYear$bodies() {
-		var $bodies = []
-		$bodies.push(getYear$body.call(this))
-		return $bodies
+		return [getYear$body.call(this)]
 	}
 
 	function getYear$body() {
-		var $body = $('<tbody class="aura-calendar__body aura-calendar__body_year"></tbody>')
-		var $row = getYear$bodyRow.call(this)
-		$body.html($row)
-		return $body
+		return $('<tbody/>')
+			.addClass('aura-calendar__body aura-calendar__body_year')
+			.html(getYear$bodyRow.call(this))
 	}
 
 	function getYear$bodyRow() {
-		var $row = $('<tr class="aura-calendar__body-row_item aura-calendar__body-row_year"></tr>')
-		var $tds = []
-		for (var i = 0; i < 12; i++) {
-			var date = this.datesRange[i]
-			$tds.push($('\
-				<td \
-					class="aura-calendar__body-cell_year  aura-calendar__body-cell_item" \
-					data-month="' + date.getMonth() + '" \
-				></td>'))
-		}
-		$row.html($tds)
-		return $row
+		return $('<tr/>')
+			.addClass('aura-calendar__body-row_item aura-calendar__body-row_year')
+			.html(this.NAMES.MONTHES.reduce(function (acc, el, i) {
+				return acc.concat($('<td/>')
+					.addClass('aura-calendar__body-cell_year  aura-calendar__body-cell_item')
+					.attr('data-month', i))
+			}, []))
 	}
 
 
 
 	// MONTH
 
-	function insertMonthItem(item, firstCellDate, lastCellDate) {
-		var $rowToInsert, currentWeek
-		var it = this
-		var $headCellsToInsert = getMonth$headCellsToInsert.call(this, firstCellDate, lastCellDate)
-		var color = item.getColor() || AuraCalendar.utilities.defaultEventColor
-		var instanceIndex = item.getInstanceIndex()
-		var key = item.getKey()
+	function getMonthCellsToInsert(firstCellDate, lastCellDate) {
+		var rowIsFull, dateIsOver
 		var datesComparator = AuraCalendar.utilities.datesComparator.month
-		$headCellsToInsert.each(function (i, headCell) {
-			var $headCell = $(headCell)
-			var $body = $headCell.parents('.aura-calendar__body')
-			var week = $body.data('week')
-			var year = $headCell.data('year')
-			var month = $headCell.data('month')
-			var day = $headCell.data('day')
-			if (currentWeek !== week) {
-				currentWeek = week
-				$rowToInsert = null
-				$body.find('.aura-calendar__body-row_item').each(function (i, row) {
-					var $row = $(row)
-					$rowToInsert = $row
-					$row.find('.aura-calendar__body-cell_item').each(function (i, cell) {
-						var $cell = $(cell)
-						var cellDate = new Date($cell.data('year'), $cell.data('month'), $cell.data('day'))
-						if (datesComparator(cellDate, item.getBeginDate()) < 0 || datesComparator(cellDate, item.getEndDate()) > 0) return true
-						if ($cell.children().length) {
-							$rowToInsert = null
-							return false
-						}
-
-					})
-
-					if ($rowToInsert) return false
-				})
-
-				if (!$rowToInsert) {
-					$rowToInsert = getMonth$bodyRow.call(it, week)
-					$body.append($rowToInsert)
-				}
-			}
-
-			var titleClasses = ['aura-calendar__event-title', 'text-color_' + (AuraCalendar.utilities.isColorDark(color) ? 'white' : 'black')]
-
-			if (it.isIE10orLess || it.state.fixedRowHeight) titleClasses.push('aura-calendar__event-title_fixed')
-
-			var eventClasses = ['aura-calendar__event']
-			it.state.fixedRowHeight && eventClasses.push('aura-calendar__event_fixed')
-			it.isIE10orLess && eventClasses.push('height_auto')
-
-			$rowToInsert
-				.find(getDateQuery({
-					el: '.aura-calendar__body-cell_item',
-					year: year,
-					month: month,
-					day: day
-				}))
-				.html('\
-					<div class="'+ eventClasses.join(' ') + '" data-key="' + key + '" data-instance="' + instanceIndex + '">\
-						<div class="aura-calendar__event-filler'+ (it.isIE10orLess ? ' position_relative' : '') + '" style="background-color:' + color + '">\
-							<div class="'+ titleClasses.join(' ') + '"></div>\
-						</div>\
-					</div>'
-				)
-		})
-
-		this.$.table.find('.aura-calendar__body-row_item').each(function (i, row) {
-			var $events = $(row).find('[data-key="' + key + '"][data-instance="' + instanceIndex + '"]')
-			var $title = $events.first().find('.aura-calendar__event-title')
-
-			$title.html(item.getTitle())
-			$title.addClass('padding-left_10px')
-			$title.parent().css('position', 'relative')
-			if ($events.length > 1) {
-
-				$title.width((100 * $events.length - 17) + '%')
-				$title.css('z-index', 2)
-			}
-		})
-	}
-
-	function getMonth$headCellsToInsert(firstCellDate, lastCellDate) {
-		var $nodes = []
-		var currentDate = new Date(firstCellDate)
-		var datesComparator = AuraCalendar.utilities.datesComparator.month
-		while (datesComparator(currentDate, lastCellDate) < 1) {
-			$nodes.push(this.$.table.find(getDateQuery({
-				el: '.aura-calendar__body-cell_head',
-				year: currentDate.getFullYear(),
-				month: currentDate.getMonth(),
-				day: currentDate.getDate()
-			})))
-			currentDate.setDate(currentDate.getDate() + 1)
+		var data = {
+			item: [],
+			title: []
 		}
-		return $($nodes)
+		var current$body = this.$.table.find(getDateQuery({
+			el: '.aura-calendar__body-cell_head',
+			year: firstCellDate.getFullYear(),
+			month: firstCellDate.getMonth(),
+			day: firstCellDate.getDate()
+		}))
+			.parents('.aura-calendar__body')
+
+		while (current$body.length) {
+			var current$row = current$body.find('.aura-calendar__body-row_item').first()
+			while (current$row.length) {
+				rowIsFull = false
+				dateIsOver = false
+				var current$cell = current$row.find('.aura-calendar__body-cell_item').first()
+				while (current$cell.length) {
+					var cellDate = getMonthDateFrom$cell(current$cell)
+					if (!(datesComparator(cellDate, firstCellDate) < 0)) {
+						if (datesComparator(cellDate, lastCellDate) > 0) {
+							dateIsOver = true
+							break
+						}
+						if (!current$cell.is(':empty')) {
+							rowIsFull = true
+							break;
+						}
+					}
+					current$cell = current$cell.next()
+				}
+				if (dateIsOver || !rowIsFull) break
+				current$row = current$row.next()
+			}
+
+			if (!current$row.length) {
+				current$row = getMonth$bodyRow(getMonthDateFrom$cell(current$body
+					.find('.aura-calendar__body-cell_item').first()))
+					.appendTo(current$body)
+			}
+
+			current$cell = current$row.find('.aura-calendar__body-cell_item').first()
+
+			dateIsOver = false
+			var titles = []
+			while (current$cell.length) {
+				var cellDate = getMonthDateFrom$cell(current$cell)
+				if (!(datesComparator(cellDate, firstCellDate) < 0)) {
+					if (datesComparator(cellDate, lastCellDate) > 0) {
+						dateIsOver = true
+						break
+					}
+					data.item.push(current$cell)
+					titles.push(current$cell)
+				}
+				current$cell = current$cell.next()
+			}
+			if (titles.length) data.title.push(titles)
+			if (dateIsOver) break
+			current$body = current$body.next()
+		}
+		return data
 	}
 
 	function buildMonth$table() {
 		var $table = getMonth$table.call(this)
 		var now = new Date()
-
 		$table.find(getDateQuery({
 			year: now.getFullYear(),
 			month: now.getMonth(),
 			day: now.getDate(),
 			el: '.aura-calendar__body-cell_head'
-		})).addClass('aura-calendar__body-cell_active')
+		}))
+			.addClass('aura-calendar__body-cell_active')
 		return $table
 	}
 
 	function getMonth$table() {
-		var $table = $('<table class="aura-calendar__table"></table>')
-		var $head = getMonth$head.call(this)
-		var $bodies = getMonth$bodies.call(this)
-
-		$table.append($head, $bodies)
-		return $table
+		return $('<table/>')
+			.addClass('aura-calendar__table')
+			.append(getMonth$head.call(this), getMonth$bodies.call(this))
 	}
 
 	function getMonth$head() {
-		var $head = $('<thead class="aura-calendar__head"></thead>')
-		var $headRow = this.NAMES.DAYS.reduce(function ($acc, name, i) {
-			$acc.append('<th class="aura-calendar__head-cell" data-day="' + (i + 1) + '">' + name + '</th>')
-			return $acc
-		}, $('<tr class="aura-calendar__head-row"></tr>'))
-
-		$head.html($headRow)
-		return $head
+		return $('<thead/>')
+			.addClass('aura-calendar__head')
+			.html(this.NAMES.DAYS.reduce(function ($acc, name, i) {
+				return $acc.append($('<th/>')
+					.addClass('aura-calendar__head-cell')
+					.attr('data-day', i + 1)
+					.html(name))
+			}, $('<tr/>').addClass('aura-calendar__head-row')))
 	}
 
 	function getMonth$bodies() {
-		var $bodies = []
-		for (var j = 0; j < this.datesRange.length; j++) {
-			if (!(j % 7)) {
-				$bodies.push(getMonth$body.call(this, j / 7))
-			}
-		}
-		return $bodies
+		var it = this
+		return this.datesRange.reduce(function (acc, el, i) {
+			if (!(i % 7)) acc.push(getMonth$body.call(it, el))
+			return acc
+		}, [])
 	}
 
-	function getMonth$body(week) {
-		var $body = $('<tbody class="aura-calendar__body aura-calendar__body_month" data-week="' + week + '"></tbody>')
-		var $head = getMonth$bodyHead.call(this, week)
-		var $row = getMonth$bodyRow.call(this, week)
-		$body.html([$head, $row])
-		return $body
+	function getMonth$body(date) {
+		return $('<tbody/>')
+			.addClass('aura-calendar__body aura-calendar__body_month')
+			.html([getMonth$bodyHead.call(this, date), getMonth$bodyRow.call(this, date)])
 	}
 
-	function getMonth$bodyHead(week) {
-		var $head = $('<tr class="aura-calendar__body-row_head" data-week="' + week + '"></tr>')
-		var $tds = []
-		var beginIndex = week * 7
-
+	function getMonth$bodyHead(date) {
+		var tds = []
+		var currentDate = new Date(date)
 		for (var i = 0; i < 7; i++) {
-			var date = this.datesRange[beginIndex++]
-			var day = date.getDate()
-			var mutedClass = ' '
-			if (date.getMonth() !== this.state.date.getMonth()) {
-				mutedClass = ' aura-calendar__body-cell_muted'
-			}
-			$tds.push($('\
-				<td \
-					class="aura-calendar__body-cell_month  aura-calendar__body-cell_head'+ mutedClass + '" \
-					data-year="' + date.getFullYear() + '" \
-					data-month="' + date.getMonth() + '" \
-					data-day="' + day + '" \
-				>\
-					<div class="aura-calendar__day-number">\
-						'+ day + '\
-					</div>\
-				</td>'))
+			var mutedClass = currentDate.getMonth() === this.state.date.getMonth() ? '' : ' aura-calendar__body-cell_muted'
+			tds.push(getHead$bodyCell(currentDate, mutedClass))
+			currentDate.setDate(currentDate.getDate() + 1)
 		}
-		$head.html($tds)
-		return $head
+
+		return $('<tr/>')
+			.addClass('aura-calendar__body-row_head')
+			.html(tds)
 	}
 
-	function getMonth$bodyRow(week) {
-		var $row = $('<tr class="aura-calendar__body-row_item aura-calendar__body-row_month" data-week="' + week + '"></tr>')
-		var $tds = []
-		var beginIndex = week * 7
+	function getHead$bodyCell(date, mutedClass) {
+		var day = date.getDate()
+		return $('<td/>')
+			.addClass('aura-calendar__body-cell_month  aura-calendar__body-cell_head' + mutedClass)
+			.attr('data-year', date.getFullYear())
+			.attr('data-month', date.getMonth())
+			.attr('data-day', day)
+			.html($('<div/>')
+				.addClass('aura-calendar__day-number')
+				.html(day)
+			)
+	}
+
+	function getMonth$bodyRow(date) {
+		var tds = []
+		var currentDate = new Date(date)
 		for (var i = 0; i < 7; i++) {
-			var date = this.datesRange[beginIndex++]
-			var day = date.getDate()
-			$tds.push($('\
-				<td \
-					class="aura-calendar__body-cell_month  aura-calendar__body-cell_item" \
-					data-year="' + date.getFullYear() + '" \
-					data-month="' + date.getMonth() + '" \
-					data-day="' + day + '" \
-				>\
-				</td>'))
+			tds.push(getMonth$bodyCell(currentDate))
+			currentDate.setDate(currentDate.getDate() + 1)
 		}
-		$row.html($tds)
-		return $row
+		return $('<tr/>')
+			.addClass('aura-calendar__body-row_item aura-calendar__body-row_month')
+			.html(tds)
+	}
+
+	function getMonth$bodyCell(date) {
+		return $('<td/>')
+			.addClass('aura-calendar__body-cell_month  aura-calendar__body-cell_item')
+			.attr('data-year', date.getFullYear())
+			.attr('data-month', date.getMonth())
+			.attr('data-day', date.getDate())
+	}
+
+	function getMonthDateFrom$cell($cell) {
+		return new Date(
+			$cell.attr('data-year'),
+			$cell.attr('data-month'),
+			$cell.attr('data-day')
+		)
+	}
+
+	// WEEK
+
+	function getWeekCellsToInsert(firstCellDate, lastCellDate) {
+		var rowIsFull, dateIsOver
+		var datesComparator = AuraCalendar.utilities.datesComparator.week
+		var data = {
+			item: [],
+			title: []
+		}
+		var current$body = this.$.table.find(getDateQuery({
+			el: '.aura-calendar__body-cell_item',
+			year: firstCellDate.getFullYear(),
+			month: firstCellDate.getMonth(),
+			day: firstCellDate.getDate(),
+			hour: firstCellDate.getHours()
+		}))
+			.parents('.aura-calendar__body')
+
+		while (current$body.length) {
+			var current$row = current$body.find('.aura-calendar__body-row_item').first()
+			while (current$row.length) {
+				rowIsFull = false
+				dateIsOver = false
+				var current$cell = current$row.find('.aura-calendar__body-cell_item').first()
+				while (current$cell.length) {
+					var cellDate = getWeekDateFrom$cell(current$cell)
+					if (!(datesComparator(cellDate, firstCellDate) < 0)) {
+						if (datesComparator(cellDate, lastCellDate) > 0) {
+							dateIsOver = true
+							break
+						}
+						if (!current$cell.is(':empty')) {
+							rowIsFull = true
+							break;
+						}
+					}
+					current$cell = current$cell.next()
+				}
+				if (dateIsOver || !rowIsFull) break
+				current$row = current$row.next()
+			}
+
+			if (!current$row.length) {
+				current$row = getWeek$bodyRow.call(this, getWeekDateFrom$cell(current$body
+					.find('.aura-calendar__body-cell_item').first()))
+					.appendTo(current$body)
+			}
+
+			current$cell = current$row.find('.aura-calendar__body-cell_item').first()
+
+			dateIsOver = false
+			var titles = []
+			while (current$cell.length) {
+				var cellDate = getWeekDateFrom$cell(current$cell)
+
+				if (!(datesComparator(cellDate, firstCellDate) < 0)) {
+					if (datesComparator(cellDate, lastCellDate) > 0) {
+						dateIsOver = true
+						break
+					}
+					data.item.push(current$cell)
+					titles.push(current$cell)
+				}
+				current$cell = current$cell.next()
+			}
+			if (titles.length) data.title.push(titles)
+			if (dateIsOver) break
+			current$body = current$body.next()
+		}
+		console.log(data);
+
+		return data
+	}
+
+	function buildWeek$table() {
+		var $table = getWeek$table.call(this)
+		var now = new Date()
+		$table.find(getDateQuery({
+			year: now.getFullYear(),
+			month: now.getMonth(),
+			day: now.getDate(),
+			el: '.aura-calendar__body-cell_head'
+		}))
+			.addClass('aura-calendar__body-cell_active')
+		return $table
+	}
+
+	function getWeek$table() {
+		return $('<table/>')
+			.addClass('aura-calendar__table')
+			.append(getWeek$head.call(this), getWeek$bodies.call(this))
+	}
+
+	function getWeek$head() {
+		return $('<thead/>')
+			.addClass('aura-calendar__head')
+			.html(this.NAMES.HOURS.reduce(function ($acc, name, i) {
+				return $acc.append($('<th/>')
+					.addClass('aura-calendar__head-cell')
+					.attr('data-day', i + 1)
+					.html(name))
+			}, $('<tr/>')
+				.addClass('aura-calendar__head-row')
+				.html($('<th/>')
+					.addClass('aura-calendar__head-cell'))))
+	}
+
+	function getWeek$bodies() {
+		var bodies = []
+		for (var i = 0; i < 7; i++) {
+			bodies.push(getWeek$body.call(this, this.datesRange[i]))
+		}
+		return bodies
+	}
+
+	function getWeek$body(date) {
+		return $('<tbody/>')
+			.addClass('aura-calendar__body aura-calendar__body_week')
+			.html([getWeek$headRow.call(this, date), getWeek$bodyRow.call(this, date)])
+	}
+
+	function getWeek$headRow(date) {
+		var day = AuraCalendar.utilities.shiftSunday(date.getDay())
+		var tds = [$('<td/>')
+			.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head')
+			.attr('data-week-day', day)
+			.html(this.NAMES.DAYS[day])]
+		var currentDate = new Date(date)
+		for (var i = 0; i < 24; i++) {
+			tds.push(getWeek$headCell(currentDate))
+			currentDate.setHours(currentDate.getHours() + 1)
+		}
+
+		return $('<tr/>')
+			.addClass('aura-calendar__body-row_head aura-calendar__body-row_head_week')
+			.html(tds)
+	}
+
+	function getWeek$bodyRow(date) {
+		var day = AuraCalendar.utilities.shiftSunday(date.getDay())
+		var tds = [$('<td/>')
+			.addClass('aura-calendar__body-cell_week-name aura-calendar__body-cell_week')
+			.attr('data-week-day', day)]
+		var currentDate = new Date(date)
+		for (var i = 0; i < 24; i++) {
+			tds.push(getWeek$bodyCell(currentDate))
+			currentDate.setHours(currentDate.getHours() + 1)
+		}
+
+		return $('<tr/>')
+			.addClass('aura-calendar__body-row_item aura-calendar__body-row_week')
+			.html(tds)
+	}
+
+	function getWeek$headCell(date) {
+		return $('<td/>')
+			.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head')
+			.attr('data-year', date.getFullYear())
+			.attr('data-month', date.getMonth())
+			.attr('data-day', date.getDate())
+			.attr('data-hour', date.getHours())
+	}
+
+	function getWeek$bodyCell(date) {
+		return $('<td/>')
+			.addClass('aura-calendar__body-cell_week  aura-calendar__body-cell_item')
+			.attr('data-year', date.getFullYear())
+			.attr('data-month', date.getMonth())
+			.attr('data-day', date.getDate())
+			.attr('data-hour', date.getHours())
+	}
+
+	function getWeekDateFrom$cell($cell) {
+		return new Date(
+			$cell.attr('data-year'),
+			$cell.attr('data-month'),
+			$cell.attr('data-day'),
+			$cell.attr('data-hour')
+		)
 	}
 
 
@@ -812,7 +896,8 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 	DatePicker.prototype = {
 		formats: {
 			year: 'yyyy',
-			month: 'MM.yyyy'
+			month: 'MM.yyyy',
+			week: 'MM.yyyy'
 		},
 		setState: function (state) {
 			this.params.parent.state = state
@@ -878,20 +963,40 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 
 AuraCalendar.Event = (function EVENT_MODULE() {
 	// Constructor
-	function EventConstructor(params) {
+	function EventConstructor(parent, params) {
 		var functionValidator = AuraCalendar.utilities.functionValidator
 		if (!params) throw new Error('Event params are missed')
+		this.parent = parent
 		this.instanceIndex = params.instanceIndex || 0
 		this.key = params.key
 		this.beginDate = params.beginDate
 		this.endDate = params.endDate
-		this.data = params.data
+		this.data = params.data || {}
 		this.getTitle = functionValidator(params.getTitle)
 		this.getDescription = functionValidator(params.getDescription)
 		this.getColor = functionValidator(params.getColor)
-		this.onClick = functionValidator(params.onClick)
-		this.onInsert = functionValidator(params.onInsert)
-		this.onRemove = functionValidator(params.onRemove)
+		this.on = {
+			click: functionValidator(params.onClick),
+			onInsert: functionValidator(params.onInsert),
+			onRemove: functionValidator(params.onRemove)
+		}
+		this.eventParts = []
+
+		this.classes = {
+			event: ['aura-calendar__event'],
+			title: [
+				'aura-calendar__event-title'
+			],
+			filler: [
+				'aura-calendar__event-filler',
+				'aura-calendar__event-filler_' + this.parent.params.view
+			]
+		}
+		this.parent.params.fixedRowHeight && this.classes.event.push('aura-calendar__event_fixed')
+		if (this.parent.isIE10orLess) {
+			this.classes.event.push('height_auto')
+			this.classes.filler.push('position_relative')
+		}
 	}
 
 	EventConstructor.prototype = {
@@ -902,19 +1007,114 @@ AuraCalendar.Event = (function EVENT_MODULE() {
 		getEndDate: function () { return this.endDate },
 		getTitle: function () { },
 		getDescription: function () { },
-		getColor: function () { }
+		getColor: function () { },
+		remove: function () {
+			this.eventParts.map(function ($el) {
+				$el.remove()
+			})
+			this.parent.removeEmptyRows()
+		},
+		render: function (params) {
+			var it = this
+			var cellsItem = params.cells.item
+			var cellsTitle = params.cells.title
+			var isBeganBefore = params.isBeganBefore
+			var isEndedBefore = params.isEndedBefore
+			var color = this.getColor()
+			var eventParts = this.eventParts
+			var eventPartGetter
+			switch (it.parent.state.view) {
+				case 'year':
+					eventPartGetter = getYearEventPart
+					break;
+				case 'month':
+					eventPartGetter = getMonthEventPart
+					break;
+				case 'week':
+					eventPartGetter = getWeekEventPart
+					break;
+			}
+			cellsItem.map(function (cell) {
+				var $cell = $(cell)
+				var $eventPart = eventPartGetter.call(it, color)
+
+				$cell.html($eventPart
+					.off('click')
+					.click(it.parent.params.on.eventClick.bind(it.parent, it))
+				)
+				eventParts.push($eventPart)
+			})
+
+			if (!isBeganBefore) {
+				eventParts[0]
+					.find('.aura-calendar__event-filler')
+					.addClass('aura-calendar__event-filler_first')
+			}
+			if (!isEndedBefore) {
+				eventParts[eventParts.length - 1]
+					.find('.aura-calendar__event-filler')
+					.addClass('aura-calendar__event-filler_last')
+			}
+			cellsTitle.map(function (cells) {
+				var $title = cells[0]
+					.find('.aura-calendar__event-title')
+				$title
+					.html(it.getTitle())
+					.width((100 * cells.length - 17) + '%')
+			})
+		}
+	}
+
+
+
+
+	function getYearEventPart(color) {
+		return $('<div/>')
+			.addClass(this.classes.event.join(' '))
+			.attr('data-key', this.getKey())
+			.attr('data-instance', this.getInstanceIndex())
+			.append($('<div/>')
+				.addClass(this.classes.filler.join(' '))
+				.css('background-color', color)
+				.append($('<div/>')
+					.addClass(this.classes.title.join(' '))
+					.addClass('text-color_' + (u.isColorDark(color) ? 'white' : 'black'))))
+	}
+	function getMonthEventPart(color) {
+		return $('<div/>')
+			.addClass(this.classes.event.join(' '))
+			.attr('data-key', this.getKey())
+			.attr('data-instance', this.getInstanceIndex())
+			.append($('<div/>')
+				.addClass(this.classes.filler.join(' '))
+				.css('background-color', color)
+				.append($('<div/>')
+					.addClass(this.classes.title.join(' '))
+					.addClass('text-color_' + (u.isColorDark(color) ? 'white' : 'black'))))
+	}
+	function getWeekEventPart(color) {
+		return $('<div/>')
+			.addClass(this.classes.event.join(' '))
+			.attr('data-key', this.getKey())
+			.attr('data-instance', this.getInstanceIndex())
+			.append($('<div/>')
+				.addClass(this.classes.filler.join(' '))
+				.css('background-color', color)
+				.append($('<div/>')
+					.addClass(this.classes.title.join(' '))
+					.addClass('text-color_' + (u.isColorDark(color) ? 'white' : 'black'))))
 	}
 	return EventConstructor
 }())
 
 AuraCalendar.EventIterator = (function EVENT_ITERATOR_MODULE() {
 	// Constructor
-	function EventIterator(instanceParams, commonParams) {
+	function EventIterator(parent, instanceParams, commonParams) {
 		var u = AuraCalendar.utilities
 		if (!instanceParams) instanceParams = {}
 		if (!u.isArray(instanceParams)) instanceParams = [instanceParams]
 		this.items = instanceParams.map(function (item, i) {
-			return new AuraCalendar.Event({
+			return new AuraCalendar.Event(parent, {
 				instanceIndex: i,
 				key: item.key,
 				beginDate: item.beginDate,
@@ -928,17 +1128,22 @@ AuraCalendar.EventIterator = (function EVENT_ITERATOR_MODULE() {
 				onRemove: item.onRemove
 			})
 		})
+		this.length = this.items.length
 	}
 
 	EventIterator.prototype = {
 		some: function (callback) {
-			return this.items.some(function (item, i) {
-				return callback(item, i)
-			})
+			return this.items.some(callback)
 		},
 		map: function (callback) {
-			return this.items.map(function (item, i) {
-				return callback(item, i)
+			return this.items.map(callback)
+		},
+		getKey: function () {
+			return this.items[0].getKey()
+		},
+		remove: function () {
+			this.map(function (instance) {
+				instance.remove()
 			})
 		}
 	}
@@ -1028,33 +1233,57 @@ AuraCalendar.utilities = {
 	},
 	datesComparator: {
 		year: function (firstDate, secondDate) {
-			var firstYear = firstDate.getFullYear()
-			var firstMonth = firstDate.getMonth()
-			var secondYear = secondDate.getFullYear()
-			var secondMonth = secondDate.getMonth()
+			var firstTime = new Date(
+				firstDate.getFullYear(),
+				firstDate.getMonth()
+			)
+				.getTime()
+			var secondTime = new Date(
+				secondDate.getFullYear(),
+				secondDate.getMonth()
+			)
+				.getTime()
 
-			return firstYear < secondYear ? -1
-				: firstYear > secondYear ? 1
-					: firstMonth < secondMonth ? -1
-						: firstMonth > secondMonth ? 1 : 0
+			return firstTime < secondTime ? -1
+				: firstTime > secondTime ? 1 : 0
 
 		},
 		month: function (firstDate, secondDate) {
-			var firstYear = firstDate.getFullYear()
-			var firstMonth = firstDate.getMonth()
-			var firstDay = firstDate.getDate()
-			var secondYear = secondDate.getFullYear()
-			var secondMonth = secondDate.getMonth()
-			var secondDay = secondDate.getDate()
+			var firstTime = new Date(
+				firstDate.getFullYear(),
+				firstDate.getMonth(),
+				firstDate.getDate()
+			)
+				.getTime()
+			var secondTime = new Date(
+				secondDate.getFullYear(),
+				secondDate.getMonth(),
+				secondDate.getDate()
+			)
+				.getTime()
 
-			return firstYear < secondYear ? -1
-				: firstYear > secondYear ? 1
-					: firstMonth < secondMonth ? -1
-						: firstMonth > secondMonth ? 1
-							: firstDay < secondDay ? -1
-								: firstDay > secondDay ? 1 : 0
+			return firstTime < secondTime ? -1
+				: firstTime > secondTime ? 1 : 0
 
 		},
+		week: function (firstDate, secondDate) {
+			var firstTime = new Date(
+				firstDate.getFullYear(),
+				firstDate.getMonth(),
+				firstDate.getDate(),
+				firstDate.getHours()
+			)
+				.getTime()
+			var secondTime = new Date(
+				secondDate.getFullYear(),
+				secondDate.getMonth(),
+				secondDate.getDate(),
+				secondDate.getHours()
+			)
+				.getTime()
+			return firstTime < secondTime ? -1
+				: firstTime > secondTime ? 1 : 0
+		}
 	},
 	color: function () {
 		var random = AuraCalendar.utilities.random
@@ -1195,7 +1424,7 @@ var event = {
 			var now = new Date()
 			now.setFullYear(2000)
 			var dateBegin = new Date(now)
-			now.setFullYear(2019)
+			now.setFullYear(new Date().getFullYear())
 			now.setMonth(u.random(11))
 			var dateEnd = new Date(now)
 			params.beginDate = dateBegin
@@ -1275,31 +1504,30 @@ var event = {
 		single: function (params) {
 			if (!params) params = {}
 			var now = new Date()
-			now.setDate(u.random(now.getDate() - 1))
+			now.setDate(u.random(u.daysInMonth(now) - 1))
 			params.beginDate = now
 			params.endDate = now
+			params.title = 'single'
 			return this.custom(params)
 		},
 		inside: function (params) {
 			if (!params) params = {}
 			var now = new Date()
-			var dayBegin = u.random(now.getDate() - 1)
-
+			var dayBegin = u.random(u.daysInMonth(now) - 1)
 			now.setDate(dayBegin)
 			var dateBegin = new Date(now)
 			var dayEnd = dayBegin + u.random(u.daysInMonth(now) - 1 - dayBegin)
 			now.setDate(dayEnd)
 			var dateEnd = new Date(now)
-
-			console.log(dateBegin.format('dd.MM.yyyy'), dateEnd.format('dd.MM.yyyy'));
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
+			params.title = 'inside'
 			return this.custom(params)
 		},
 		long: function (params) {
 			if (!params) params = {}
 			var now = new Date()
-			var dayBegin = u.random(now.getDate() - 1)
+			var dayBegin = 1
 			now.setDate(dayBegin)
 			var dateBegin = new Date(now)
 			var dayEnd = u.daysInMonth(now) - 1
@@ -1308,78 +1536,74 @@ var event = {
 
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
+			params.title = 'long'
 			return this.custom(params)
 		},
 		pre: function (params) {
 			if (!params) params = {}
-			var now = new Date()
-			now.setFullYear(2000)
-			var dateBegin = new Date(now)
-			now.setFullYear(2019)
-			now.setMonth(u.random(11))
-			var dateEnd = new Date(now)
+			var dateBegin = new Date()
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date()
+			dateEnd.setDate(u.random(u.daysInMonth(dateEnd) - 1))
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
+			params.title = 'pre'
 			return this.custom(params)
 		},
 		post: function (params) {
 			if (!params) params = {}
-			var now = new Date()
-			now.setMonth(u.random(11))
-			var dateBegin = new Date(now)
-			now.setFullYear(3000)
-			var dateEnd = new Date(now)
+			var dateBegin = new Date()
+			dateBegin.setDate(u.random(u.daysInMonth(dateBegin) - 1))
+			var dateEnd = new Date()
+			dateEnd.setFullYear(3000)
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
+			params.title = 'post'
 			return this.custom(params)
 		},
 		both: function (params) {
 			if (!params) params = {}
-			var now = new Date()
-			now.setFullYear(2000)
-			var dateBegin = new Date(now)
-			now.setFullYear(3000)
-			var dateEnd = new Date(now)
+			var dateBegin = new Date()
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(3000)
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
+			params.title = 'both'
 			return this.custom(params)
 		},
 		before: function (params) {
 			if (!params) params = {}
-			var now = new Date()
-			now.setFullYear(2000)
-			var dateBegin = new Date(now)
-			now.setFullYear(2001)
-			now.setMonth(u.random(11))
-			var dateEnd = new Date(now)
+			var dateBegin = new Date()
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(2001)
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
+			params.title = 'before'
 			return this.custom(params)
 		},
 		after: function (params) {
 			if (!params) params = {}
-			var now = new Date()
-			now.setFullYear(3000)
-			var dateBegin = new Date(now)
-			now.setFullYear(3001)
-			now.setMonth(u.random(11))
-			var dateEnd = new Date(now)
+			var dateBegin = new Date()
+			dateBegin.setFullYear(3000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(3001)
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
+			params.title = 'after'
 			return this.custom(params)
 		},
 		bulk: function () {
 			return [
 				this.single(),
 				this.inside(),
+				this.long(),
 				this.pre(),
 				this.post(),
 				this.both(),
-				this.single(),
-				this.inside(),
-				this.pre(),
-				this.post(),
-				this.both()
+				this.before(),
+				this.after()
 			]
 		},
 		custom: function (params) {
@@ -1387,7 +1611,129 @@ var event = {
 			return {
 				key: u.either(params.key, u.random(1000000)),
 				beginDate: params.beginDate,
-				endDate: params.endDate
+				endDate: params.endDate,
+				data: {
+					title: params.title
+				}
+			}
+		}
+	},
+	week: {
+		single: function (params) {
+			if (!params) params = {}
+			var now = new Date()
+			now.setDate(now.getDate() - u.shiftSunday(now.getDay()))
+			now.setDate(now.getDate() + u.random(6))
+			params.beginDate = now
+			params.endDate = now
+			params.title = 'single'
+			return this.custom(params)
+		},
+		inside: function (params) {
+			if (!params) params = {}
+			var now = new Date()
+			var dayBegin = u.random(u.daysInMonth(now) - 1)
+			now.setDate(dayBegin)
+			var dateBegin = new Date(now)
+			var dayEnd = dayBegin + u.random(u.daysInMonth(now) - 1 - dayBegin)
+			now.setDate(dayEnd)
+			var dateEnd = new Date(now)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'inside'
+			return this.custom(params)
+		},
+		long: function (params) {
+			if (!params) params = {}
+			var now = new Date()
+			var dayBegin = 1
+			now.setDate(dayBegin)
+			var dateBegin = new Date(now)
+			var dayEnd = u.daysInMonth(now) - 1
+			now.setDate(dayEnd)
+			var dateEnd = new Date(now)
+
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'long'
+			return this.custom(params)
+		},
+		pre: function (params) {
+			if (!params) params = {}
+			var dateBegin = new Date()
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date()
+			dateEnd.setDate(u.random(u.daysInMonth(dateEnd) - 1))
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'pre'
+			return this.custom(params)
+		},
+		post: function (params) {
+			if (!params) params = {}
+			var dateBegin = new Date()
+			dateBegin.setDate(u.random(u.daysInMonth(dateBegin) - 1))
+			var dateEnd = new Date()
+			dateEnd.setFullYear(3000)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'post'
+			return this.custom(params)
+		},
+		both: function (params) {
+			if (!params) params = {}
+			var dateBegin = new Date()
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(3000)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'both'
+			return this.custom(params)
+		},
+		before: function (params) {
+			if (!params) params = {}
+			var dateBegin = new Date()
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(2001)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'before'
+			return this.custom(params)
+		},
+		after: function (params) {
+			if (!params) params = {}
+			var dateBegin = new Date()
+			dateBegin.setFullYear(3000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(3001)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'after'
+			return this.custom(params)
+		},
+		bulk: function () {
+			return [
+				this.single(),
+				this.inside(),
+				this.long(),
+				this.pre(),
+				this.post(),
+				this.both(),
+				this.before(),
+				this.after()
+			]
+		},
+		custom: function (params) {
+			if (!params) params = {}
+			return {
+				key: u.either(params.key, u.random(1000000)),
+				beginDate: params.beginDate,
+				endDate: params.endDate,
+				data: {
+					title: params.title
+				}
 			}
 		}
 	}
@@ -1396,9 +1742,9 @@ var event = {
 
 var calendar = new AuraCalendar({
 	container: '#calendar',
-	view: 'year',
+	view: 'week',
 	getTitle: function () {
-		return this.getKey()
+		return this.getKey() + ' ' + this.data.title
 	},
 	getDescription: function () {
 		return this
@@ -1408,11 +1754,60 @@ var calendar = new AuraCalendar({
 		return u.color()
 		return '#' + this.getKey().toString(16).slice(0, 7)
 		return '#111111'
+	},
+	onEventClick: function (event) {
+		event.remove()
 	}
 })
 
 console.log(calendar)
-
+window.auraCalendar = calendar
 calendar.render()
+var date1 = new Date
+var date2 = new Date
+var date3 = new Date
+date1.setDate(9)
+date2.setDate(3)
+date3.setDate(5)
+window.eventGenerator = event.week
+// var event = event.year.single()
+var events = [{
+	key: 1,
+	beginDate: date2,
+	endDate: date2
+},
+{
+	key: 2,
+	beginDate: date2,
+	endDate: date2
+},
 
-calendar.insertEvent(event.year.bulk())
+]
+var e1 = event.week.single()
+// console.log(e1.beginDate.format('dd.MM.yyyy'), e1.endDate.format('dd.MM.yyyy'));
+
+calendar.insertEvent(e1)
+// calendar.insertEvent([{
+// 	key: 3,
+// 	beginDate: date3,
+// 	endDate: date3
+// },
+// {
+// 	key: 4,
+// 	beginDate: date3,
+// 	endDate: date3
+// }])
+// calendar.insertEvent({
+// 	key: 5,
+// 	beginDate: date1,
+// 	endDate: date1
+// })
+
+window.add = () => {
+	calendar.insertEvent({
+		key: 6,
+		beginDate: date1,
+		endDate: date1
+	})
+}
+// calendar.removeEvent(event)
