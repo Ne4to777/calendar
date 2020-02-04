@@ -270,13 +270,17 @@ var event = {
 		long: function (params) {
 			if (!params) params = {}
 			var now = new Date()
-			var dayBegin = 1
-			now.setDate(dayBegin)
 			var dateBegin = new Date(now)
-			var dayEnd = u.daysInMonth(now) - 1
-			now.setDate(dayEnd)
+			dateBegin.setDate(now.getDate() - u.shiftSunday(now.getDay()))
+			dateBegin.setDate(dateBegin.getDate() + u.random(6))
+			dateBegin.setHours(u.random(23))
 			var dateEnd = new Date(now)
-
+			var beginDay = u.shiftSunday(dateBegin.getDay())
+			dateEnd.setDate(dateEnd.getDate() + beginDay + u.random(6 - beginDay))
+			dateEnd.setHours(u.random(23))
+			if (dateBegin.getDate() === dateEnd.getDate()) {
+				dateEnd.setDate(dateEnd.getDate() + 1)
+			}
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
 			params.title = 'long'
@@ -284,10 +288,13 @@ var event = {
 		},
 		pre: function (params) {
 			if (!params) params = {}
+			var now = new Date()
 			var dateBegin = new Date()
 			dateBegin.setFullYear(2000)
-			var dateEnd = new Date()
-			dateEnd.setDate(u.random(u.daysInMonth(dateEnd) - 1))
+			var dateEnd = new Date(now)
+			var beginDay = u.shiftSunday(dateBegin.getDay())
+			dateEnd.setDate(dateEnd.getDate() + beginDay + u.random(6 - beginDay))
+			dateEnd.setHours(u.random(23))
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
 			params.title = 'pre'
@@ -295,10 +302,13 @@ var event = {
 		},
 		post: function (params) {
 			if (!params) params = {}
+			var now = new Date()
 			var dateBegin = new Date()
-			dateBegin.setDate(u.random(u.daysInMonth(dateBegin) - 1))
+			dateBegin.setDate(now.getDate() - u.shiftSunday(now.getDay()))
+			dateBegin.setDate(dateBegin.getDate() + u.random(6))
+			dateBegin.setHours(u.random(23))
 			var dateEnd = new Date()
-			dateEnd.setFullYear(3000)
+			dateEnd.setFullYear(3001)
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
 			params.title = 'post'
@@ -309,7 +319,7 @@ var event = {
 			var dateBegin = new Date()
 			dateBegin.setFullYear(2000)
 			var dateEnd = new Date()
-			dateEnd.setFullYear(3000)
+			dateEnd.setFullYear(3001)
 			params.beginDate = dateBegin
 			params.endDate = dateEnd
 			params.title = 'both'
@@ -341,17 +351,21 @@ var event = {
 			return [
 				this.single(),
 				this.inside(),
+				this.inside(),
+				this.inside(),
+				this.inside(),
+				this.inside(),
 				this.long(),
-				this.pre(),
-				this.post(),
-				this.both(),
+				// this.pre(),
+				// this.post(),
+				// this.both(),
 				this.before(),
 				this.after()
 			]
 		},
 		custom: function (params) {
 			if (!params) params = {}
-			params.title += ' fvya fvya fvya fyva yfva fyva fyva fyv afyva fy vafyvafvyafy vafyv afyva fyva fyv a'
+			params.title += ' Повседневная практика показывает, что постоянный количественный рост и сфера нашей активности требуют от нас анализа системы обучения кадров, соответствует насущным потребностям. Задача организации, в особенности же укрепление и развитие структуры требуют определения и уточнения форм развития. Значимость этих проблем настолько очевидна, что реализация намеченных плановых'
 			return {
 				key: u.either(params.key, u.random(1000000)),
 				beginDate: params.beginDate,
@@ -363,12 +377,12 @@ var event = {
 		}
 	}
 }
-var mode = 'month'
+var mode = 'week'
 
 var calendar = new AuraCalendar({
 	container: '#calendar',
 	view: mode,
-	eventHeight: 3,
+	eventHeight: 4,
 	views: ['year', 'month', 'week'],
 	getTitle: function () {
 		return this.getKey() + ' ' + this.data.title
@@ -410,7 +424,7 @@ var events = [{
 },
 
 ]
-var e1 = event[mode].bulk()
+var e1 = event[mode].inside()
 // console.log(e1.beginDate.format('dd.MM.yyyy'), e1.endDate.format('dd.MM.yyyy'));
 
 calendar.insertEvent(e1)

@@ -1,0 +1,233 @@
+@charset "UTF-8";
+#aspnetForm {
+	display: none;
+}
+
+#autoResizeTextareaCopy {
+	display: none;
+}
+
+html, body {
+	margin: 0;
+	padding: 0;
+	word-wrap: break-word;
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+}
+
+html {
+	min-height: 100vh;
+	overflow-x: visible;
+	overflow-y: auto;
+	font-size: 16px;
+	line-height: 1.5;
+	font-family: 'Roboto', sans-serif !important;
+	background-color: #F8F8F8;
+	color: #000;
+}
+
+html *:not(.s-icon):not(.fa):not(.mce-tinymce *) {
+	font-family: 'Roboto', sans-serif !important;
+}
+
+body {
+	min-height: inherit;
+	overflow-x: visible;
+	overflow-y: visible;
+	/* font-size: 0.75rem; */
+	/* 12px - Подписи */
+	/* font-size: 0.875rem; */
+	/* 14px - Обычный текст + h3 */
+	/* font-size: 1rem; */
+	/* 16px - Иконки + Значки */
+	/* font-size: 1.25rem; */
+	/* 20px - Заголовок h2 */
+	/* font-size: 1.375rem; */
+	/* 22px - Заголовок h1 */
+	/* font-size: 1.625rem; */
+	/* 26px - Частный */
+	/* font-size: 2.5rem; */
+	/* 40px - Частный */
+	/* font-size: 3.5rem; */
+	/* 56px - Частный */
+	font-size: 0.875rem;
+}
+
+a {
+	outline: none;
+	border: none;
+	display: inline-block;
+	text-decoration: none;
+	color: inherit;
+}
+
+div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, form, fieldset, p, blockquote, th, td {
+	margin: 0;
+	padding: 0;
+}
+
+fieldset, img, abbr, acronym {
+	border: 0;
+	outline: none;
+}
+
+address, caption, cite, code, dfn, em, strong, th, var {
+	font-style: normal;
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+caption, th, td {
+	text-align: left;
+	vertical-align: top;
+}
+
+ol, ul {
+	list-style: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	font-size: 100%;
+	font-weight: normal;
+}
+
+q:before, q:after {
+	content: '';
+}
+
+input, textarea {
+	margin: 0;
+	padding: 0;
+	font-size: inherit;
+	font-family: inherit;
+	resize: none;
+	color: inherit;
+	background-color: transparent;
+	outline: none;
+	border: none;
+	border-radius: 0 0;
+}
+
+div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+
+article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+
+ol, ul {
+	list-style: none;
+}
+
+blockquote:before, blockquote:after, q:before, q:after {
+	content: '';
+	content: none;
+}
+
+blockquote, q {
+	quotes: none;
+}
+
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+::selection {
+	color: #FFFFFF;
+	background-color: #68B3FF;
+}
+
+::-moz-selection {
+	color: #FFFFFF;
+	background-color: #68B3FF;
+}
+
+::-moz-placeholder {
+	color: #DEDEDE;
+	font-style: italic;
+}
+
+::-ms-input-placeholder {
+	color: #DEDEDE;
+	font-style: italic;
+}
+
+::-webkit-input-placeholder {
+	color: #DEDEDE;
+	font-style: italic;
+}
+
+input {}
+
+div.a-form__input:empty:after {
+	content: 'Открыть список';
+	color: #DEDEDE;
+	font-style: italic;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+div.a-form__input:empty:after {
+	content: attr(placeholder);
+	color: #DEDEDE;
+	font-style: italic;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+.g-sidebar__search-input>input::-moz-placeholder {
+	color: #989B9D;
+	font-style: italic;
+}
+
+.g-sidebar__search-input>input::-ms-input-placeholder {
+	color: #989B9D;
+	font-style: italic;
+}
+
+.g-sidebar__search-input>input::-webkit-input-placeholder {
+	color: #989B9D;
+	font-style: italic;
+}
+
+input::-ms-clear {
+	display: none;
+}
+
+input::-ms-clear {
+	display: none;
+	width: 0;
+	height: 0;
+}
+
+input::-ms-reveal {
+	display: none;
+	width: 0;
+	height: 0;
+}
+
+input::-webkit-search-decoration, input::-webkit-search-cancel-button, input::-webkit-search-results-button, input::-webkit-search-results-decoration {
+	display: none;
+}
+
+canvas {
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+}

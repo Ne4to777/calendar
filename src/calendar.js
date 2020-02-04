@@ -58,8 +58,14 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 		buildMainView.call(this)
 		initDatePicker.call(this)
 		initGrid.call(this)
+
 	}
 	AuraCalendar.prototype = {
+		build: function (params) {
+			this.$.container = AuraCalendar.utilities.get$node(this.params.container)
+			this.datePicker.render(params)
+			this.grid.render(params)
+		},
 		render: function (params) {
 			this.$.container = AuraCalendar.utilities.get$node(this.params.container)
 			this.$.container.html(this.$.wrapper)
@@ -305,7 +311,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 
 			var datesComparator = AuraCalendar.utilities.datesComparator[it.state.view]
 
-			items.map(function (iterator) {
+			items.map(function (iterator, i) {
 				var key = iterator.getKey()
 				it.removeItem(key)
 				it.itemsMap[key] = iterator
@@ -318,11 +324,13 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 					var isEndedBefore = datesComparator(endDate, lastDateInView) > 0
 					var firstCellDate = isBeganBefore ? firstDateInView : beginDate
 					var lastCellDate = isEndedBefore ? lastDateInView : endDate
+
 					instance.render({
 						cells: getCellsToInsert.call(it, firstCellDate, lastCellDate),
 						isBeganBefore: isBeganBefore,
 						isEndedBefore: isEndedBefore
 					})
+
 				})
 			})
 		},
@@ -978,7 +986,6 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 			.append(this.$.left)
 			.append(this.$.date)
 			.append(this.$.right)
-
 	}
 
 	function move(direction) {
@@ -1036,15 +1043,23 @@ AuraCalendar.Event = (function EVENT_MODULE() {
 				'aura-calendar__event-filler_' + this.parent.params.view
 			]
 		}
-		AuraCalendar.utilities.isIE10orLess() && this.classes.event.push('aura-calendar__event_fixed')
+		if (AuraCalendar.utilities.isIE10orLess()) {
+			this.classes.event.push('aura-calendar__event_fixed')
+			this.classes.event.push('no-wrap')
+		}
 	}
 
+	var HEIGHTS = {
+		year: 14,
+		month: 14,
+		week: 14
+	}
+	var TITLE_LENGTH_MULTIPLIERS = {
+		year: 102,
+		month: 102,
+		week: 130
+	}
 	EventConstructor.prototype = {
-		HEIGHTS: {
-			year: 14,
-			month: 14,
-			week: 14
-		},
 		getId: function () { return this.getKey() + '-' + this.getInstanceIndex() },
 		getInstanceIndex: function () { return this.instanceIndex || 0 },
 		getKey: function () { return this.key },
@@ -1078,6 +1093,8 @@ AuraCalendar.Event = (function EVENT_MODULE() {
 				eventParts.push($eventPart)
 			})
 
+
+
 			if (!isBeganBefore) {
 				eventParts[0]
 					.find('.aura-calendar__event-filler')
@@ -1089,36 +1106,53 @@ AuraCalendar.Event = (function EVENT_MODULE() {
 					.find('.aura-calendar__event-filler')
 					.addClass('aura-calendar__event-filler_last')
 			}
+
 			cellsTitle.map(function (cells) {
 				var $title = cells[0]
 					.find('.aura-calendar__event-title')
-				var title = it.getTitle()
-				$title
-					.attr('title', title)
-					.html(title)
+					.html(it.getTitle())
 				if (cells.length > 1) {
-					$title.width((100 * cells.length + 10) + '%')
+					$title.width(getTitleWidth(eventParts, cells))
 				}
 			})
 		}
 	}
 
+	function getTitleWidth(eventParts, cells) {
+		var cellWidth = Math.round(eventParts.reduce(function (acc, part) {
+			return acc + part.outerWidth()
+		}, 0) / eventParts.length)
+		return ((cellWidth + 1) * cells.length) - 8 + 'px'
+	}
 
 	function getEventPart(color) {
 		return $('<div/>')
 			.addClass(this.classes.event.join(' '))
 			.attr('data-key', this.getKey())
 			.attr('data-instance', this.getInstanceIndex())
+			.attr('title', this.getTitle())
 			.append($('<div/>')
 				.addClass(this.classes.filler.join(' '))
 				.css('background-color', color)
 				.append($('<div/>')
 					.addClass(this.classes.title.join(' '))
-					.css('max-height', this.parent.params.eventHeight ? this.parent.params.eventHeight * this.HEIGHTS[this.parent.state.view] + 'px' : 'none')
+					.css('max-height', this.parent.params.eventHeight ? this.parent.params.eventHeight * HEIGHTS[this.parent.state.view] + 'px' : 'none')
 					.addClass('text-color_' + (AuraCalendar.utilities.isColorDark(color) ? 'white' : 'black'))))
 	}
 	return EventConstructor
 }())
+
+//  ===========================================================================================================================================
+//  ======        ==  ====  ==        ==  =======  ==        ==    ==        ==        ==       ======  =====        ====    ====       =======
+//  ======  ========  ====  ==  ========   ======  =====  ======  ======  =====  ========  ====  ====    =======  ======  ==  ===  ====  ======
+//  ======  ========  ====  ==  ========    =====  =====  ======  ======  =====  ========  ====  ===  ==  ======  =====  ====  ==  ====  ======
+//  ======  ========  ====  ==  ========  ==  ===  =====  ======  ======  =====  ========  ===   ==  ====  =====  =====  ====  ==  ===   ======
+//  ======      ====   ==   ==      ====  ===  ==  =====  ======  ======  =====      ====      ====  ====  =====  =====  ====  ==      ========
+//  ======  =========  ==  ===  ========  ====  =  =====  ======  ======  =====  ========  ====  ==        =====  =====  ====  ==  ====  ======
+//  ======  =========  ==  ===  ========  =====    =====  ======  ======  =====  ========  ====  ==  ====  =====  =====  ====  ==  ====  ======
+//  ======  ==========    ====  ========  ======   =====  ======  ======  =====  ========  ====  ==  ====  =====  ======  ==  ===  ====  ======
+//  ======        =====  =====        ==  =======  =====  =====    =====  =====        ==  ====  ==  ====  =====  =======    ====  ====  ======
+//  ===========================================================================================================================================
 
 AuraCalendar.EventIterator = (function EVENT_ITERATOR_MODULE() {
 	// Constructor
