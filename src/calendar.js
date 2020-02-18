@@ -813,13 +813,13 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 			.addClass('aura-calendar__head')
 			.html(this.NAMES.HOURS.reduce(function ($acc, name, i) {
 				return $acc.append($('<th/>')
-					.addClass('aura-calendar__head-cell')
+					.addClass('aura-calendar__head-cell aura-calendar__head-cell_week')
 					.attr('data-day', i + 1)
 					.html(name))
 			}, $('<tr/>')
 				.addClass('aura-calendar__head-row')
 				.html($('<th/>')
-					.addClass('aura-calendar__head-cell'))))
+					.addClass('aura-calendar__head-cell aura-calendar__head-cell_week aura-calendar__head-cell_first'))))
 	}
 
 	function getWeek$bodies() {
@@ -841,15 +841,17 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		var currentDate = new Date(date)
 		var mutedClass = currentDate.getFullYear() === this.state.date.getFullYear()
 			&& currentDate.getMonth() === this.state.date.getMonth() ? '' : ' aura-calendar__body-cell_muted'
-		var tds = [$('<td/>')
-			.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head' + mutedClass)
-			.attr('data-week-day', day)
-			.html($('<div/>')
-				.addClass('aura-calendar__body-cell_week-name')
-				.html(this.NAMES.DAYS[day]))
-			.append($('<div/>')
-				.addClass('aura-calendar__body-cell_week-day')
-				.html(currentDate.getDate()))]
+		var tds = [
+			$('<td/>')
+				.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_first' + mutedClass)
+				.attr('data-week-day', day)
+				.html($('<div/>')
+					.addClass('aura-calendar__body-cell_week-name')
+					.html(this.NAMES.DAYS[day]))
+				.append($('<div/>')
+					.addClass('aura-calendar__body-cell_week-day')
+					.html(currentDate.getDate()))
+		]
 		for (var i = 0; i < 24; i++) {
 			tds.push(getWeek$headCell(currentDate))
 			currentDate.setHours(currentDate.getHours() + 1)
@@ -862,6 +864,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 
 	function getWeek$bodyRow(date) {
 		var day = AuraCalendar.utilities.shiftSunday(date.getDay())
+		var currentDate = new Date(date)
 		var tds = [$('<td/>')
 			.addClass('aura-calendar__body-cell_week-empty aura-calendar__body-cell_week')
 			.attr('data-week-day', day)]
@@ -878,7 +881,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 
 	function getWeek$headCell(date) {
 		return $('<td/>')
-			.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head')
+			.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_tail')
 			.attr('data-year', date.getFullYear())
 			.attr('data-month', date.getMonth())
 			.attr('data-day', date.getDate())
@@ -1054,11 +1057,7 @@ AuraCalendar.Event = (function EVENT_MODULE() {
 		month: 14,
 		week: 14
 	}
-	var TITLE_LENGTH_MULTIPLIERS = {
-		year: 102,
-		month: 102,
-		week: 130
-	}
+
 	EventConstructor.prototype = {
 		getId: function () { return this.getKey() + '-' + this.getInstanceIndex() },
 		getInstanceIndex: function () { return this.instanceIndex || 0 },
@@ -1111,8 +1110,14 @@ AuraCalendar.Event = (function EVENT_MODULE() {
 				var $title = cells[0]
 					.find('.aura-calendar__event-title')
 					.html(it.getTitle())
+				$title.parents('.aura-calendar__event')
+					.append($('<div/>')
+						.addClass('aura-calendar__event-time aura-calendar__event-time_begin')
+						.html(it.beginDate.format('HH:mm') + '-' + it.endDate.format('HH:mm')))
 				if (cells.length > 1) {
-					$title.width(getTitleWidth(eventParts, cells))
+					$title
+						.width(getTitleWidth(eventParts, cells))
+						.css('z-index', 1)
 				}
 			})
 		}
@@ -1130,7 +1135,8 @@ AuraCalendar.Event = (function EVENT_MODULE() {
 			.addClass(this.classes.event.join(' '))
 			.attr('data-key', this.getKey())
 			.attr('data-instance', this.getInstanceIndex())
-			.attr('title', this.getTitle())
+			.attr('title', $('<span>' + this.getTitle() + '</span>').text())
+
 			.append($('<div/>')
 				.addClass(this.classes.filler.join(' '))
 				.css('background-color', color)

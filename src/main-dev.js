@@ -424,7 +424,7 @@ var events = [{
 },
 
 ]
-var e1 = event[mode].inside()
+var e1 = event[mode].bulk()
 // console.log(e1.beginDate.format('dd.MM.yyyy'), e1.endDate.format('dd.MM.yyyy'));
 
 calendar.insertEvent(e1)
@@ -452,3 +452,20 @@ window.add = () => {
 	})
 }
 // calendar.removeEvent(event)
+
+
+
+
+const div = (x, y) => x * Math.pow(y, -1)
+
+// console.log(div(0, 1)) // 0
+// console.log(div(1, 0)) // Infinity
+// console.log(div(0, 0)) // NaN or Infinity Or 0
+// console.log(div(4, 2)) // 2
+// console.log(div(2, 2)) // 1
+// console.log(div(-4, 2)) // -2
+// console.log(div(-4, -2)) // 2
+// console.log(div(1, 2)) // .5
+// console.log(div(.1, .1)) // 1
+// console.log(div(1, .3)) // 0.3333333333333333
+// console.log(div(Math.PI, 2)) // 1.5707963267948966
