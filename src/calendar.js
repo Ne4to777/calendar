@@ -310,29 +310,32 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 			lastDateInView.setSeconds(59)
 
 			var datesComparator = AuraCalendar.utilities.datesComparator[it.state.view]
-
-			items.map(function (iterator, i) {
-				var key = iterator.getKey()
-				it.removeItem(key)
-				it.itemsMap[key] = iterator
-				iterator.map(function (instance) {
-					var beginDate = instance.getBeginDate()
-					var endDate = instance.getEndDate()
-					if (!beginDate || !endDate) return
-					if (datesComparator(beginDate, lastDateInView) > 0 || datesComparator(endDate, firstDateInView) < 0) return
-					var isBeganBefore = datesComparator(beginDate, firstDateInView) < 0
-					var isEndedBefore = datesComparator(endDate, lastDateInView) > 0
-					var firstCellDate = isBeganBefore ? firstDateInView : beginDate
-					var lastCellDate = isEndedBefore ? lastDateInView : endDate
-
-					instance.render({
-						cells: getCellsToInsert.call(it, firstCellDate, lastCellDate),
-						isBeganBefore: isBeganBefore,
-						isEndedBefore: isEndedBefore
-					})
-
+			items
+				.sort(function (a, b) {
+					return a.items[0].getBeginDate().getTime() > b.items[0].getBeginDate().getTime() ? 1 : -1
 				})
-			})
+				.map(function (iterator, i) {
+					var key = iterator.getKey()
+					it.removeItem(key)
+					it.itemsMap[key] = iterator
+					iterator.map(function (instance) {
+						var beginDate = instance.getBeginDate()
+						var endDate = instance.getEndDate()
+						if (!beginDate || !endDate) return
+						if (datesComparator(beginDate, lastDateInView) > 0 || datesComparator(endDate, firstDateInView) < 0) return
+						var isBeganBefore = datesComparator(beginDate, firstDateInView) < 0
+						var isEndedBefore = datesComparator(endDate, lastDateInView) > 0
+						var firstCellDate = isBeganBefore ? firstDateInView : beginDate
+						var lastCellDate = isEndedBefore ? lastDateInView : endDate
+
+						instance.render({
+							cells: getCellsToInsert.call(it, firstCellDate, lastCellDate),
+							isBeganBefore: isBeganBefore,
+							isEndedBefore: isEndedBefore
+						})
+
+					})
+				})
 		},
 		removeItem: function (key) {
 			var iterator = this.itemsMap[key]
