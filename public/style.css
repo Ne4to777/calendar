@@ -32,6 +32,14 @@ table {
 	font-weight: bold;
 }
 
+.aura-calendar__head-cell_active-horizontal {
+	border-bottom: solid 2px #848484;
+}
+
+.aura-calendar__head-cell_active-vertical {
+	border-left: solid 2px #848484 !important;
+}
+
 .aura-calendar__body {}
 
 .aura-calendar__head-row_year {
@@ -73,8 +81,9 @@ table {
 .aura-calendar__body-cell_head_week.aura-calendar__body-cell_head_first {
 	position: absolute;
 	z-index: 2;
-	padding: 10px 10px 0 10px;
-	border: none;
+	padding: 10px 9px 0 10px;
+	border-left: none;
+	border-right: none;
 	background-color: #fff;
 	color: #848484;
 }
@@ -166,7 +175,7 @@ table {
 	height: 30px;
 	width: 30px;
 	margin-left: 10px;
-	line-height: 32px;
+	line-height: 30px;
 	position: relative;
 	text-align: center;
 	user-select: none;
