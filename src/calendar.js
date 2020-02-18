@@ -382,8 +382,10 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 	function buildMainView() {
 		var tableBuilder
 		var vector = []
+		var now = new Date()
 		var u = AuraCalendar.utilities
 		var date = this.state.date
+		var datesComparator = AuraCalendar.utilities.datesComparator.month
 		switch (this.state.view) {
 			case 'year':
 				var year = date.getFullYear()
@@ -420,6 +422,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 				break
 		}
 		this.datesRange = vector
+		this.isTodayInView = datesComparator(now, vector[0]) > -1 && datesComparator(now, vector[vector.length - 1]) < 1
 		this.$.table = tableBuilder.call(this)
 		this.$.wrapper.html(this.$.table)
 	}
@@ -429,9 +432,10 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		var yearQuery = params.year === undefined ? '' : '[data-year="' + params.year + '"]'
 		var monthQuery = params.month === undefined ? '' : '[data-month="' + params.month + '"]'
 		var dayQuery = params.day === undefined ? '' : '[data-day="' + params.day + '"]'
+		var weekDayQuery = params.weekDay === undefined ? '' : '[data-week-day="' + params.weekDay + '"]'
 		var hourQuery = params.hour === undefined ? '' : '[data-hour="' + params.hour + '"]'
 		var elQuery = params.el || ''
-		return elQuery + yearQuery + monthQuery + dayQuery + hourQuery
+		return elQuery + yearQuery + monthQuery + weekDayQuery + dayQuery + hourQuery
 	}
 
 
@@ -474,7 +478,16 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 	}
 
 	function buildYear$table() {
+		var now = new Date()
 		var $table = getYear$table.call(this)
+		if (this.isTodayInView) {
+			$table.find(getDateQuery({
+				year: now.getFullYear(),
+				month: now.getMonth(),
+				el: '.aura-calendar__head-cell'
+			}))
+				.addClass('aura-calendar__head-cell_active-horizontal')
+		}
 		return $table
 	}
 
@@ -486,13 +499,14 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 
 	function getYear$head() {
 		var it = this
-		var now = new Date()
+		var date = this.state.date
+		var year = date.getFullYear()
 		return $('<thead/>')
 			.addClass('aura-calendar__head')
 			.append(this.params.parent.MONTHES.reduce(function ($acc, name, i) {
 				$('<th/>')
 					.addClass('aura-calendar__head-cell aura-calendar__head-cell_year')
-					.addClass(i === now.getMonth() ? ' aura-calendar__head-cell_active-horizontal' : '')
+					.attr('data-year', year)
 					.attr('data-month', i)
 					.text(name)
 					.appendTo($acc)
@@ -602,13 +616,22 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		var it = this
 		var $table = getMonth$table.call(this)
 		var now = new Date()
-		$table.find(getDateQuery({
-			year: now.getFullYear(),
-			month: now.getMonth(),
-			day: now.getDate(),
-			el: '.aura-calendar__body-cell_head'
-		}))
-			.addClass('aura-calendar__body-cell_active')
+		if (this.isTodayInView) {
+			$table.find(getDateQuery({
+				year: now.getFullYear(),
+				month: now.getMonth(),
+				day: now.getDate(),
+				el: '.aura-calendar__body-cell_head'
+			}))
+				.addClass('aura-calendar__body-cell_active')
+			$table.find(getDateQuery({
+				year: now.getFullYear(),
+				month: now.getMonth(),
+				weekDay: AuraCalendar.utilities.shiftSunday(now.getDay()),
+				el: '.aura-calendar__head-cell'
+			}))
+				.addClass('aura-calendar__head-cell_active-horizontal')
+		}
 		if (this.params.parent.hasView('week')) {
 			$table.find('.aura-calendar__body-row_head')
 				.addClass('aura-calendar__body-row_head_clickable')
@@ -633,15 +656,19 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 	}
 
 	function getMonth$head() {
-		var now = new Date()
+		var date = this.state.date
+		var year = date.getFullYear()
+		var month = date.getMonth()
 		return $('<thead/>')
 			.addClass('aura-calendar__head')
 			.html(this.NAMES.DAYS.reduce(function ($acc, name, i) {
 				return $acc.append($('<th/>')
 					.addClass('aura-calendar__head-cell')
-					.addClass(i === AuraCalendar.utilities.shiftSunday(now.getDay()) ? ' aura-calendar__head-cell_active-horizontal' : '')
-					.attr('data-day', i + 1)
-					.html(name))
+					.attr('data-year', year)
+					.attr('data-month', month)
+					.attr('data-week-day', i)
+					.html(name)
+				)
 			}, $('<tr/>').addClass('aura-calendar__head-row')))
 	}
 
@@ -791,13 +818,32 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 	function buildWeek$table() {
 		var $table = getWeek$table.call(this)
 		var now = new Date()
-		$table.find(getDateQuery({
-			year: now.getFullYear(),
-			month: now.getMonth(),
-			day: now.getDate(),
-			el: '.aura-calendar__body-cell_head'
-		}))
-			.addClass('aura-calendar__body-cell_active')
+		if (this.isTodayInView) {
+			$table.find(getDateQuery({
+				year: now.getFullYear(),
+				month: now.getMonth(),
+				day: now.getDate(),
+				el: '.aura-calendar__body-cell_head_first'
+			}))
+				.addClass('aura-calendar__head-cell_active-vertical')
+
+			$table.find(getDateQuery({
+				year: now.getFullYear(),
+				month: now.getMonth(),
+				hour: now.getHours(),
+				el: '.aura-calendar__head-cell'
+			}))
+				.addClass('aura-calendar__head-cell_active-horizontal')
+			$table.find(getDateQuery({
+				year: now.getFullYear(),
+				month: now.getMonth(),
+				day: now.getDate(),
+				hour: now.getHours(),
+				el: '.aura-calendar__body-cell_head_tail'
+			}))
+				.find('.aura-calendar__body-cell_head_week_hour')
+				.addClass('aura-calendar__head-cell_active-horizontal')
+		}
 		return $table
 	}
 
@@ -808,14 +854,17 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 	}
 
 	function getWeek$head() {
-		var now = new Date
+		var date = this.state.date
+		var year = date.getFullYear()
+		var month = date.getMonth()
 		return $('<thead/>')
 			.addClass('aura-calendar__head')
 			.html(this.NAMES.HOURS.reduce(function ($acc, name, i) {
 				return $acc.append($('<th/>')
 					.addClass('aura-calendar__head-cell aura-calendar__head-cell_week')
-					.addClass(i === now.getHours() ? ' aura-calendar__head-cell_active-horizontal' : '')
-					.attr('data-day', i + 1)
+					.attr('data-year', year)
+					.attr('data-month', month)
+					.attr('data-hour', i)
 					.html(name)
 					.append($('<span/>')
 						.addClass('aura-calendar__head-cell_sup')
@@ -843,14 +892,15 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 
 	function getWeek$headRow(date) {
 		var day = AuraCalendar.utilities.shiftSunday(date.getDay())
-		var now = new Date()
 		var currentDate = new Date(date)
 		var mutedClass = currentDate.getFullYear() === this.state.date.getFullYear()
 			&& currentDate.getMonth() === this.state.date.getMonth() ? '' : ' aura-calendar__body-cell_muted'
 		var tds = [
 			$('<td/>')
 				.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_first' + mutedClass)
-				.addClass(day === AuraCalendar.utilities.shiftSunday(now.getDay()) ? ' aura-calendar__head-cell_active-vertical' : '')
+				.attr('data-year', date.getFullYear())
+				.attr('data-month', date.getMonth())
+				.attr('data-day', date.getDate())
 				.attr('data-week-day', day)
 				.html($('<div/>')
 					.addClass('aura-calendar__body-cell_week-name')
@@ -888,7 +938,6 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 
 	function getWeek$headCell(date) {
 		var hours = date.getHours()
-		var now = new Date()
 		return $('<td/>')
 			.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_tail')
 			.attr('data-year', date.getFullYear())
@@ -897,7 +946,6 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 			.attr('data-hour', hours)
 			.html($('<div/>')
 				.addClass('aura-calendar__body-cell_head_week_hour')
-				.addClass(date.getHours() === now.getHours() ? ' aura-calendar__head-cell_active-horizontal' : '')
 				.html(this.NAMES.HOURS[hours])
 				.append($('<span/>')
 					.addClass('aura-calendar__head-cell_sup')
@@ -1291,15 +1339,13 @@ AuraCalendar.utilities = {
 	firstDayInMonth: function (date) {
 		var date = new Date(date)
 		date.setDate(0)
-		var day = date.getDay()
-		return AuraCalendar.utilities.shiftSunday(day)
+		return AuraCalendar.utilities.shiftSunday(date.getDay())
 	},
 	lastDayInMonth: function (date) {
 		var u = AuraCalendar.utilities
 		var date = new Date(date)
 		date.setDate(u.daysInMonth(date))
-		var day = date.getDay()
-		return u.shiftSunday(day)
+		return u.shiftSunday(date.getDay())
 	},
 	daysInMonth: function (date) {
 		return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()

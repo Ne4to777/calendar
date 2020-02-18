@@ -15,6 +15,7 @@ table {
 .aura-calendar__table {
 	width: 100%;
 	table-layout: fixed;
+	user-select: none;
 }
 
 .aura-calendar__table tr {
@@ -34,10 +35,12 @@ table {
 
 .aura-calendar__head-cell_active-horizontal {
 	border-bottom: solid 2px #848484;
+	padding-bottom: 8px;
 }
 
 .aura-calendar__head-cell_active-vertical {
 	border-left: solid 2px #848484 !important;
+	padding-left: 8px !important;
 }
 
 .aura-calendar__body {}
@@ -283,6 +286,7 @@ table {
 	font-size: 12px;
 	cursor: pointer;
 	border-radius: 4px;
+	user-select: text;
 }
 
 .aura-calendar__event-title_fixed {
