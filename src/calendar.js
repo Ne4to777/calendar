@@ -61,6 +61,20 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 
 	}
 	AuraCalendar.prototype = {
+		MONTHES: [
+			'Январь',
+			'Февраль',
+			'Март',
+			'Апрель',
+			'Май',
+			'Июнь',
+			'Июль',
+			'Август',
+			'Сентябрь',
+			'Октябрь',
+			'Ноябрь',
+			'Декабрь'
+		],
 		build: function (params) {
 			this.$.container = AuraCalendar.utilities.get$node(this.params.container)
 			this.datePicker.render(params)
@@ -266,20 +280,6 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		NAMES: {
 			VIEWS: ['year', 'month'],
 			DAYS: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-			MONTHES: [
-				'Январь',
-				'Февраль',
-				'Март',
-				'Апрель',
-				'Май',
-				'Июнь',
-				'Июль',
-				'Август',
-				'Сентябрь',
-				'Октябрь',
-				'Ноябрь',
-				'Декабрь'
-			],
 			HOURS: [
 				'00', '01', '02', '03', '04', '05',
 				'06', '07', '08', '09', '10', '11',
@@ -387,7 +387,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		switch (this.state.view) {
 			case 'year':
 				var year = date.getFullYear()
-				vector = this.NAMES.MONTHES.map(function (name, i) {
+				vector = this.params.parent.MONTHES.map(function (name, i) {
 					return new Date(year, i, 1)
 				})
 				tableBuilder = buildYear$table
@@ -496,7 +496,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		var it = this
 		return $('<thead/>')
 			.addClass('aura-calendar__head')
-			.append(this.NAMES.MONTHES.reduce(function ($acc, name, i) {
+			.append(this.params.parent.MONTHES.reduce(function ($acc, name, i) {
 				$('<th/>')
 					.addClass('aura-calendar__head-cell aura-calendar__head-cell_year')
 					.attr('data-month', i)
@@ -525,7 +525,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 	function getYear$bodyRow() {
 		return $('<tr/>')
 			.addClass('aura-calendar__body-row_item aura-calendar__body-row_year')
-			.html(this.NAMES.MONTHES.reduce(function (acc, el, i) {
+			.html(this.params.parent.MONTHES.reduce(function (acc, el, i) {
 				return acc.concat($('<td/>')
 					.addClass('aura-calendar__body-cell_year  aura-calendar__body-cell_item')
 					.attr('data-month', i))
@@ -818,7 +818,11 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 				return $acc.append($('<th/>')
 					.addClass('aura-calendar__head-cell aura-calendar__head-cell_week')
 					.attr('data-day', i + 1)
-					.html(name))
+					.html(name)
+					.append($('<span/>')
+						.addClass('aura-calendar__head-cell_sup')
+						.html(':00')
+					))
 			}, $('<tr/>')
 				.addClass('aura-calendar__head-row')
 				.html($('<th/>')
@@ -856,7 +860,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 					.html(currentDate.getDate()))
 		]
 		for (var i = 0; i < 24; i++) {
-			tds.push(getWeek$headCell(currentDate))
+			tds.push(getWeek$headCell.call(this, currentDate))
 			currentDate.setHours(currentDate.getHours() + 1)
 		}
 
@@ -883,12 +887,21 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 	}
 
 	function getWeek$headCell(date) {
+		var hours = date.getHours()
 		return $('<td/>')
 			.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_tail')
 			.attr('data-year', date.getFullYear())
 			.attr('data-month', date.getMonth())
 			.attr('data-day', date.getDate())
-			.attr('data-hour', date.getHours())
+			.attr('data-hour', hours)
+			.html($('<div/>')
+				.addClass('aura-calendar__body-cell_head_week_hour')
+				.html(this.NAMES.HOURS[hours])
+				.append($('<span/>')
+					.addClass('aura-calendar__head-cell_sup')
+					.html(':00')
+				)
+			)
 	}
 
 	function getWeek$bodyCell(date) {
@@ -951,8 +964,8 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 	DatePicker.prototype = {
 		formats: {
 			year: 'yyyy',
-			month: 'MM.yyyy',
-			week: 'MM.yyyy'
+			month: ' yyyy',
+			week: ' yyyy'
 		},
 		setState: function (state) {
 			this.params.parent.state = state
@@ -970,14 +983,19 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 			this.params.parent.params.on.previous()
 		},
 		stateChangeHandler: function () {
-			this.$.date.html(this.state.date.format(this.formats[this.state.view]))
+			this.$.date.html(getDateTitle.call(this))
 		}
 	}
 	//Internal
+	function getDateTitle() {
+		return this.state.date.format((this.state.view === 'week' || this.state.view === 'month'
+			? this.params.parent.MONTHES[this.state.date.getMonth()]
+			: '') + this.formats[this.state.view])
+	}
 	function buildMainView() {
 		this.$.date = $('<div/>')
 			.addClass('aura-calendar-date-picker__date')
-			.html(this.state.date.format(this.formats[this.state.view]))
+			.html(getDateTitle.call(this))
 		this.$.left = $('<div/>')
 			.addClass('aura-calendar-date-picker__arrow aura-calendar-date-picker__arrow_left')
 			.off('click')
