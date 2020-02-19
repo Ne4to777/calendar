@@ -86,7 +86,7 @@ table {
 .aura-calendar__body-cell_head_week.aura-calendar__body-cell_head_first {
 	position: absolute;
 	z-index: 2;
-	padding: 10px 9px 0 10px;
+	padding: 10px 10px 0 10px;
 	border-left: none;
 	border-right: none;
 	background-color: #fff;
@@ -121,6 +121,16 @@ table {
 .aura-calendar__body_month .aura-calendar__body-row_head_clickable:hover {
 	cursor: pointer;
 	background-color: #F3F3F3;
+}
+
+.aura-calendar__body-row_head_week .aura-calendar__body-cell_head_clickable:hover {
+	cursor: pointer;
+	background-color: #F3F3F3 !important;
+}
+
+.aura-calendar__body-cell_month .aura-calendar__body-cell_head_clickable:hover {
+	cursor: pointer;
+	border: solid 1px #68B3FF;
 }
 
 .aura-calendar__body-cell_year, .aura-calendar__body-cell_day {
@@ -185,7 +195,9 @@ table {
 	text-align: center;
 	user-select: none;
 	color: #848484;
-	font-weight: 600
+	font-weight: 600;
+	border: solid 1px transparent;
+	border-radius: 50%;
 }
 
 .aura-calendar__body-cell_muted .aura-calendar__day-number {
@@ -369,6 +381,12 @@ table {
 	text-align: center;
 }
 
+.aura-calendar-date-picker__year-week-container {
+	display: inline-block;
+	vertical-align: middle;
+	width: 44px;
+}
+
 .aura-calendar-date-picker__day {
 	display: inline-block;
 	margin-right: 4px;
@@ -389,9 +407,11 @@ table {
 
 .aura-calendar-date-picker__year {
 	display: inline-block;
-	vertical-align: middle;
-	font-size: 16px;
-	width: 44px;
+	font-size: 12px;
+}
+
+.aura-calendar-date-picker__week-day {
+	line-height: 13px;
 }
 
 .aura-calendar__button {
@@ -399,7 +419,6 @@ table {
 	line-height: 34px;
 	min-width: 88px;
 	padding: 0px 20px;
-	margin-right: 4px;
 	display: inline-block;
 	text-align: center;
 	border-radius: 4px 4px;
@@ -428,9 +447,13 @@ table {
 	margin-left: 28px;
 }
 
-.aura-calendar__button_year {}
+.aura-calendar__button_year {
+	margin-right: 4px;
+}
 
-.aura-calendar__button_month {}
+.aura-calendar__button_month {
+	margin-right: 4px;
+}
 
 .aura-calendar__button_week {}
 

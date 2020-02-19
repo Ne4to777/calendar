@@ -317,6 +317,20 @@ AuraCalendar.NAMES = {
 		'Ноябрь',
 		'Декабрь'
 	],
+	MONTHES_CASE: [
+		'Января',
+		'Февраля',
+		'Марта',
+		'Апреля',
+		'Мая',
+		'Июня',
+		'Июля',
+		'Августа',
+		'Сентября',
+		'Октября',
+		'Ноября',
+		'Декабря'
+	],
 	DAYS: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
 	HOURS: [
 		'00', '01', '02', '03', '04', '05',
@@ -566,24 +580,25 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 			build: function (context) {
 				var $table = this.get$table(context)
 				var now = new Date()
-				if (context.params.parent.isTodayInView) {
-					$table.find(getDateQuery({
-						year: now.getFullYear(),
-						month: now.getMonth(),
-						day: now.getDate(),
-						el: '.aura-calendar__body-cell_head'
-					}))
-						.addClass('aura-calendar__body-cell_active')
-					$table.find(getDateQuery({
-						year: now.getFullYear(),
-						month: now.getMonth(),
-						weekDay: AuraCalendar.utilities.shiftSunday(now.getDay()),
-						el: '.aura-calendar__head-cell'
-					}))
-						.addClass('aura-calendar__head-cell_active-horizontal')
+				var parent = context.params.parent
+				if (parent.hasView('day')) {
+					$table
+						.find('.aura-calendar__day-number')
+						.addClass('aura-calendar__body-cell_head_clickable')
+						.off('click')
+						.click(function (e) {
+							e.stopPropagation()
+							var $cell = $(this).parent()
+							var date = new Date($cell.attr('data-year'), $cell.attr('data-month'), $cell.attr('data-day'))
+							context.setState({
+								view: 'day',
+								date: date
+							})
+						})
 				}
-				if (context.params.parent.hasView('week')) {
-					$table.find('.aura-calendar__body-row_head')
+				if (parent.hasView('week')) {
+					$table
+						.find('.aura-calendar__body-row_head')
 						.addClass('aura-calendar__body-row_head_clickable')
 						.find('.aura-calendar__body-cell_head')
 						.off('click')
@@ -597,6 +612,25 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 						})
 
 				}
+				if (parent.isTodayInView) {
+					$table
+						.find(getDateQuery({
+							year: now.getFullYear(),
+							month: now.getMonth(),
+							day: now.getDate(),
+							el: '.aura-calendar__body-cell_head'
+						}))
+						.addClass('aura-calendar__body-cell_active')
+					$table
+						.find(getDateQuery({
+							year: now.getFullYear(),
+							month: now.getMonth(),
+							weekDay: AuraCalendar.utilities.shiftSunday(now.getDay()),
+							el: '.aura-calendar__head-cell'
+						}))
+						.addClass('aura-calendar__head-cell_active-horizontal')
+				}
+
 				return $table
 			},
 			get$table: function (context) {
@@ -756,29 +790,48 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 			build: function (context) {
 				var $table = this.get$table(context)
 				var now = new Date()
-				if (context.params.parent.isTodayInView) {
-					$table.find(getDateQuery({
-						year: now.getFullYear(),
-						month: now.getMonth(),
-						day: now.getDate(),
-						el: '.aura-calendar__body-cell_head_first'
-					}))
+				var parent = context.params.parent
+				if (parent.hasView('day')) {
+					$table
+						.find('.aura-calendar__body-cell_head_first')
+						.addClass('aura-calendar__body-cell_head_clickable')
+						.off('click')
+						.click(function (e) {
+							var $cell = $(this)
+							var date = new Date($cell.attr('data-year'), $cell.attr('data-month'), $cell.attr('data-day'))
+							context.setState({
+								view: 'day',
+								date: date
+							})
+						})
+
+				}
+				if (parent.isTodayInView) {
+					$table
+						.find(getDateQuery({
+							year: now.getFullYear(),
+							month: now.getMonth(),
+							day: now.getDate(),
+							el: '.aura-calendar__body-cell_head_first'
+						}))
 						.addClass('aura-calendar__head-cell_active-vertical')
 
-					$table.find(getDateQuery({
-						year: now.getFullYear(),
-						month: now.getMonth(),
-						hour: now.getHours(),
-						el: '.aura-calendar__head-cell'
-					}))
+					$table
+						.find(getDateQuery({
+							year: now.getFullYear(),
+							month: now.getMonth(),
+							hour: now.getHours(),
+							el: '.aura-calendar__head-cell'
+						}))
 						.addClass('aura-calendar__head-cell_active-horizontal')
-					$table.find(getDateQuery({
-						year: now.getFullYear(),
-						month: now.getMonth(),
-						day: now.getDate(),
-						hour: now.getHours(),
-						el: '.aura-calendar__body-cell_head_tail'
-					}))
+					$table
+						.find(getDateQuery({
+							year: now.getFullYear(),
+							month: now.getMonth(),
+							day: now.getDate(),
+							hour: now.getHours(),
+							el: '.aura-calendar__body-cell_head_tail'
+						}))
 						.find('.aura-calendar__body-cell_head_week_hour')
 						.addClass('aura-calendar__head-cell_active-horizontal')
 				}
@@ -1243,11 +1296,18 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 					)
 					.append($('<div/>')
 						.addClass('aura-calendar-date-picker__month')
-						.html(AuraCalendar.NAMES.MONTHES[date.getMonth()])
+						.html(AuraCalendar.NAMES.MONTHES_CASE[date.getMonth()])
 					)
 					.append($('<div/>')
-						.addClass('aura-calendar-date-picker__year')
-						.html(date.getFullYear())
+						.addClass('aura-calendar-date-picker__year-week-container')
+						.append($('<div/>')
+							.addClass('aura-calendar-date-picker__year')
+							.html(date.getFullYear())
+						)
+						.append($('<div/>')
+							.addClass('aura-calendar-date-picker__week-day')
+							.html(AuraCalendar.NAMES.DAYS[AuraCalendar.utilities.shiftSunday(date.getDay())])
+						)
 					)
 			}
 		}
