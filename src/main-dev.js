@@ -375,15 +375,137 @@ var event = {
 				}
 			}
 		}
+	},
+	day: {
+		single: function (params) {
+			if (!params) params = {}
+			var now = new Date()
+			now.setHours(u.random(23))
+			params.beginDate = now
+			params.endDate = now
+			params.title = 'single'
+			return this.custom(params)
+		},
+		inside: function (params) {
+			if (!params) params = {}
+			var now = new Date()
+			var dateBegin = new Date(now)
+			var hours = u.random(23)
+			dateBegin.setHours(hours)
+			var dateEnd = new Date(now)
+			dateEnd.setHours(hours + u.random(23 - hours))
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'inside'
+			return this.custom(params)
+		},
+		long: function (params) {
+			if (!params) params = {}
+			var now = new Date()
+			var dateBegin = new Date(now)
+			var hours = u.random(3)
+			dateBegin.setHours(hours)
+			var dateEnd = new Date(now)
+			dateEnd.setHours(3 + 18 + u.random(3))
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'long'
+			return this.custom(params)
+		},
+		pre: function (params) {
+			if (!params) params = {}
+			var now = new Date()
+			var dateBegin = new Date(now)
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date(now)
+			dateEnd.setHours(u.random(23))
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'pre'
+			return this.custom(params)
+		},
+		post: function (params) {
+			if (!params) params = {}
+			var now = new Date()
+			var dateBegin = new Date(now)
+			dateBegin.setHours(u.random(23))
+			var dateEnd = new Date(now)
+			dateEnd.setFullYear(3000)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'post'
+			return this.custom(params)
+		},
+		both: function (params) {
+			if (!params) params = {}
+			var dateBegin = new Date()
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(3000)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'both'
+			return this.custom(params)
+		},
+		before: function (params) {
+			if (!params) params = {}
+			var dateBegin = new Date()
+			dateBegin.setFullYear(2000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(2001)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'before'
+			return this.custom(params)
+		},
+		after: function (params) {
+			if (!params) params = {}
+			var dateBegin = new Date()
+			dateBegin.setFullYear(3000)
+			var dateEnd = new Date()
+			dateEnd.setFullYear(3001)
+			params.beginDate = dateBegin
+			params.endDate = dateEnd
+			params.title = 'after'
+			return this.custom(params)
+		},
+		bulk: function () {
+			return [
+				this.single(),
+				this.inside(),
+				this.inside(),
+				this.inside(),
+				this.inside(),
+				this.inside(),
+				this.long(),
+				this.pre(),
+				this.post(),
+				this.both(),
+				this.before(),
+				this.after()
+			]
+		},
+		custom: function (params) {
+			if (!params) params = {}
+			params.title += ' Повседневная практика показывает, что постоянный количественный рост и сфера нашей активности требуют от нас анализа системы обучения кадров, соответствует насущным потребностям. Задача организации, в особенности же укрепление и развитие структуры требуют определения и уточнения форм развития. Значимость этих проблем настолько очевидна, что реализация намеченных плановых'
+			return {
+				key: u.either(params.key, u.random(1000000)),
+				beginDate: params.beginDate,
+				endDate: params.endDate,
+				data: {
+					title: params.title
+				}
+			}
+		}
 	}
 }
-var mode = 'month'
+var mode = 'day'
 // console.log(AuraCalendar);
 var calendar = new AuraCalendar({
 	container: '#calendar',
 	view: mode,
 	eventHeight: 4,
-	views: ['year', 'month', 'week'],
+	views: ['year', 'month', 'week', 'day'],
 	getTitle: function () {
 		return this.getKey() + ' ' + this.data.title
 	},
