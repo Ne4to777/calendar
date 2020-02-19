@@ -55,26 +55,14 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 		}
 
 		initState.call(this)
+		computeDatesRange.call(this)
+		computeIsTodayInView.call(this)
 		buildMainView.call(this)
 		initDatePicker.call(this)
 		initGrid.call(this)
 
 	}
 	AuraCalendar.prototype = {
-		MONTHES: [
-			'Январь',
-			'Февраль',
-			'Март',
-			'Апрель',
-			'Май',
-			'Июнь',
-			'Июль',
-			'Август',
-			'Сентябрь',
-			'Октябрь',
-			'Ноябрь',
-			'Декабрь'
-		],
 		build: function (params) {
 			this.$.container = AuraCalendar.utilities.get$node(this.params.container)
 			this.datePicker.render(params)
@@ -145,7 +133,15 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 		if (hasWeekView) updateMonthButton.call(this)
 		updateTodayButton.call(this)
 	}
-
+	function computeDatesRange() {
+		this.datesRange = rangesBuilder[this.state.view](this.state.date)
+	}
+	function computeIsTodayInView() {
+		var now = new Date()
+		var datesComparator = AuraCalendar.utilities.datesComparator.month
+		var datesRange = this.datesRange
+		this.isTodayInView = datesComparator(now, datesRange[0]) > -1 && datesComparator(now, datesRange[datesRange.length - 1]) < 1
+	}
 	function initGrid() {
 		var it = this
 		this.grid = new AuraCalendar.Grid({
@@ -162,7 +158,6 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 			}
 		})
 	}
-
 	function initDatePicker() {
 		this.datePicker = new AuraCalendar.DatePicker({
 			parent: this,
@@ -171,9 +166,7 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 			date: this.params.date
 		})
 	}
-
 	function initState() {
-		var it = this
 		var state = {
 			view: this.params.view,
 			date: this.params.date
@@ -189,17 +182,24 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 					if (view || date) {
 						if (view) {
 							state.view = view
-							updateYearButton.call(it)
-							updateMonthButton.call(it)
 						}
 						if (date) {
 							state.date = date
-							updateTodayButton.call(it)
 						}
-						it.datePicker.stateChangeHandler()
-						it.grid.stateChangeHandler()
+						computeDatesRange.call(this)
+						computeIsTodayInView.call(this)
+
+						if (view) {
+							updateYearButton.call(this)
+							updateMonthButton.call(this)
+						}
+						if (date) {
+							updateTodayButton.call(this)
+						}
+						this.datePicker.stateChangeHandler()
+						this.grid.stateChangeHandler()
 					}
-					it.params.on.stateChanged.call(it, it.state)
+					this.params.on.stateChanged.call(this, this.state)
 				}
 			}
 		})
@@ -211,12 +211,7 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 		this.$.buttons.month[this.state.view === 'week' ? 'show' : 'hide']()
 	}
 	function updateTodayButton() {
-		var now = new Date()
-		this.$.buttons.today[
-			this.state.date.getMonth() === now.getMonth()
-				&& this.state.date.getFullYear() === now.getFullYear()
-				? 'hide'
-				: 'show']()
+		this.$.buttons.today[this.isTodayInView ? 'hide' : 'show']()
 	}
 	function getEventIteratorInstance(item) {
 		return item instanceof AuraCalendar.EventIterator
@@ -227,8 +222,77 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 				getColor: this.params.getColor
 			})
 	}
+	var rangesBuilder = {
+		year: function (date) {
+			var year = date.getFullYear()
+			return AuraCalendar.NAMES.MONTHES.map(function (name, i) {
+				return new Date(year, i, 1)
+			})
+		},
+		month: function (date) {
+			var vector = []
+			var u = AuraCalendar.utilities
+			var firstDayInView = -u.firstDayInMonth(date)
+			var lastDayInView = 6 - u.lastDayInMonth(date) + u.daysInMonth(date)
+			for (var j = firstDayInView + 1, i = 0; j <= lastDayInView; j++ , i++) {
+				var actualDate = new Date(date)
+				actualDate.setDate(j)
+				vector.push(actualDate)
+			}
+			return vector
+		},
+		week: function (date) {
+			var vector = []
+			var u = AuraCalendar.utilities
+			var dayInWeek = u.shiftSunday(date.getDay())
+			var firstDateInView = new Date(date)
+			firstDateInView.setDate(firstDateInView.getDate() - dayInWeek)
+			var currentDate = new Date(
+				firstDateInView.getFullYear(),
+				firstDateInView.getMonth(),
+				firstDateInView.getDate()
+			)
+			for (var i = 0; i < 7; i++) {
+				vector.push(currentDate)
+				currentDate = new Date(currentDate)
+				currentDate.setDate(currentDate.getDate() + 1)
+			}
+			return vector
+		}
+
+	}
 	return AuraCalendar
 }())
+
+AuraCalendar.NAMES = {
+	VIEWS: ['year', 'month'],
+	MONTHES: [
+		'Январь',
+		'Февраль',
+		'Март',
+		'Апрель',
+		'Май',
+		'Июнь',
+		'Июль',
+		'Август',
+		'Сентябрь',
+		'Октябрь',
+		'Ноябрь',
+		'Декабрь'
+	],
+	DAYS: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+	HOURS: [
+		'00', '01', '02', '03', '04', '05',
+		'06', '07', '08', '09', '10', '11',
+		'12', '13', '14', '15', '16', '17',
+		'18', '19', '20', '21', '22', '23'
+	]
+}
+AuraCalendar.FORMATS = {
+	year: 'yyyy',
+	month: ' yyyy',
+	week: ' yyyy'
+}
 
 //  ==============================================
 //  =======      ===       ===    ==       =======
@@ -271,22 +335,11 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 			wrapper: $('<div/>'),
 			table: {}
 		}
-
 		this.state = this.params.parent.state
-
 		buildMainView.call(this)
 	}
 	Grid.prototype = {
-		NAMES: {
-			VIEWS: ['year', 'month'],
-			DAYS: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-			HOURS: [
-				'00', '01', '02', '03', '04', '05',
-				'06', '07', '08', '09', '10', '11',
-				'12', '13', '14', '15', '16', '17',
-				'18', '19', '20', '21', '22', '23'
-			]
-		},
+
 		setState: function (state) {
 			this.params.parent.setState(state)
 		},
@@ -303,8 +356,9 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		},
 		insertItem: function (items) {
 			var it = this
-			var firstDateInView = this.datesRange[0]
-			var lastDateInView = this.datesRange.slice(-1)[0]
+			var datesRange = this.params.parent.datesRange
+			var firstDateInView = datesRange[0]
+			var lastDateInView = datesRange.slice(-1)[0]
 			lastDateInView.setHours(23)
 			lastDateInView.setMinutes(59)
 			lastDateInView.setSeconds(59)
@@ -329,7 +383,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 						var lastCellDate = isEndedBefore ? lastDateInView : endDate
 
 						instance.render({
-							cells: getCellsToInsert.call(it, firstCellDate, lastCellDate),
+							cells: tableBuilder[it.state.view].getCellsToInsert(it, firstCellDate, lastCellDate),
 							isBeganBefore: isBeganBefore,
 							isEndedBefore: isEndedBefore
 						})
@@ -363,67 +417,9 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		}
 	}
 	// Internal
-	function getCellsToInsert(firstCellDate, lastCellDate) {
-		var getter
-		switch (this.state.view) {
-			case 'year':
-				getter = getYearCellsToInsert
-				break
-			case 'month':
-				getter = getMonthCellsToInsert
-				break;
-			case 'week':
-				getter = getWeekCellsToInsert
-				break
-		}
-		return getter.call(this, firstCellDate, lastCellDate)
-	}
 
 	function buildMainView() {
-		var tableBuilder
-		var vector = []
-		var now = new Date()
-		var u = AuraCalendar.utilities
-		var date = this.state.date
-		var datesComparator = AuraCalendar.utilities.datesComparator.month
-		switch (this.state.view) {
-			case 'year':
-				var year = date.getFullYear()
-				vector = this.params.parent.MONTHES.map(function (name, i) {
-					return new Date(year, i, 1)
-				})
-				tableBuilder = buildYear$table
-				break
-			case 'month':
-				var firstDayInView = -u.firstDayInMonth(date)
-				var lastDayInView = 6 - u.lastDayInMonth(date) + u.daysInMonth(date)
-				for (var j = firstDayInView, i = 0; j <= lastDayInView; j++ , i++) {
-					var actualDate = new Date(date)
-					actualDate.setDate(j)
-					vector.push(actualDate)
-				}
-				tableBuilder = buildMonth$table
-				break
-			case 'week':
-				var dayInWeek = u.shiftSunday(date.getDay())
-				var firstDateInView = new Date(date)
-				firstDateInView.setDate(firstDateInView.getDate() - dayInWeek)
-				var currentDate = new Date(
-					firstDateInView.getFullYear(),
-					firstDateInView.getMonth(),
-					firstDateInView.getDate()
-				)
-				for (var i = 0; i < 7; i++) {
-					vector.push(currentDate)
-					currentDate = new Date(currentDate)
-					currentDate.setDate(currentDate.getDate() + 1)
-				}
-				tableBuilder = buildWeek$table
-				break
-		}
-		this.datesRange = vector
-		this.isTodayInView = datesComparator(now, vector[0]) > -1 && datesComparator(now, vector[vector.length - 1]) < 1
-		this.$.table = tableBuilder.call(this)
+		this.$.table = tableBuilder[this.state.view].build(this)
 		this.$.wrapper.html(this.$.table)
 	}
 
@@ -438,541 +434,516 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 		return elQuery + yearQuery + monthQuery + weekDayQuery + dayQuery + hourQuery
 	}
 
-
-	// YEAR
-	function getYearCellsToInsert(firstCellDate, lastCellDate) {
-		var it = this
-		var $table = this.$.table
-		var $rows = $table.find('.aura-calendar__body-row_item')
-		var cellsToInsertItem = []
-		var firstMonth = firstCellDate.getMonth()
-		var lastMonth = lastCellDate.getMonth()
-		$rows.each(function (i, row) {
-			var $row = $(row)
-			var currentMonth = firstMonth
-			do {
-				var $cell = $row.find('[data-month="' + currentMonth + '"]')
-				if ($cell.is(':empty')) {
-					cellsToInsertItem.push($cell)
-				} else {
-					cellsToInsertItem = []
-					break;
+	var tableBuilder = {
+		year: {
+			build: function (context) {
+				var now = new Date()
+				var $table = this.get$table(context)
+				if (context.params.parent.isTodayInView) {
+					$table.find(getDateQuery({
+						year: now.getFullYear(),
+						month: now.getMonth(),
+						el: '.aura-calendar__head-cell'
+					}))
+						.addClass('aura-calendar__head-cell_active-horizontal')
 				}
-			} while (currentMonth++ < lastMonth)
-			if (cellsToInsertItem.length) return false
-		})
-
-		if (!cellsToInsertItem.length) {
-			var new$row = getYear$bodyRow.call(it)
-			$table.find('.aura-calendar__body').append(new$row)
-			var currentMonth = firstMonth
-			do {
-				var $cell = new$row.find('[data-month="' + currentMonth + '"]')
-				cellsToInsertItem.push($cell)
-			} while (currentMonth++ < lastMonth)
-		}
-		return {
-			item: cellsToInsertItem,
-			title: [cellsToInsertItem]
-		}
-	}
-
-	function buildYear$table() {
-		var now = new Date()
-		var $table = getYear$table.call(this)
-		if (this.isTodayInView) {
-			$table.find(getDateQuery({
-				year: now.getFullYear(),
-				month: now.getMonth(),
-				el: '.aura-calendar__head-cell'
-			}))
-				.addClass('aura-calendar__head-cell_active-horizontal')
-		}
-		return $table
-	}
-
-	function getYear$table() {
-		return $('<table/>')
-			.addClass('aura-calendar__table')
-			.append(getYear$head.call(this), getYear$bodies.call(this))
-	}
-
-	function getYear$head() {
-		var it = this
-		var date = this.state.date
-		var year = date.getFullYear()
-		return $('<thead/>')
-			.addClass('aura-calendar__head')
-			.append(this.params.parent.MONTHES.reduce(function ($acc, name, i) {
-				$('<th/>')
-					.addClass('aura-calendar__head-cell aura-calendar__head-cell_year')
-					.attr('data-year', year)
-					.attr('data-month', i)
-					.text(name)
-					.appendTo($acc)
-				return $acc
-			}, $('<tr/>')
-				.addClass('aura-calendar__head-row aura-calendar__head-row_year'))
-				.off('click').click(function (e) {
-					var date = new Date(it.state.date.getFullYear(), $(e.target).data('month'), 1)
-					var view = 'month'
-					it.setState({ date: date, view: view })
-				}))
-	}
-
-	function getYear$bodies() {
-		return [getYear$body.call(this)]
-	}
-
-	function getYear$body() {
-		return $('<tbody/>')
-			.addClass('aura-calendar__body aura-calendar__body_year')
-			.html(getYear$bodyRow.call(this))
-	}
-
-	function getYear$bodyRow() {
-		return $('<tr/>')
-			.addClass('aura-calendar__body-row_item aura-calendar__body-row_year')
-			.html(this.params.parent.MONTHES.reduce(function (acc, el, i) {
-				return acc.concat($('<td/>')
-					.addClass('aura-calendar__body-cell_year  aura-calendar__body-cell_item')
-					.attr('data-month', i))
-			}, []))
-	}
-
-
-
-	// MONTH
-
-	function getMonthCellsToInsert(firstCellDate, lastCellDate) {
-		var rowIsFull, dateIsOver
-		var datesComparator = AuraCalendar.utilities.datesComparator.month
-		var data = {
-			item: [],
-			title: []
-		}
-		var current$body = this.$.table.find(getDateQuery({
-			el: '.aura-calendar__body-cell_head',
-			year: firstCellDate.getFullYear(),
-			month: firstCellDate.getMonth(),
-			day: firstCellDate.getDate()
-		}))
-			.parents('.aura-calendar__body')
-
-		while (current$body.length) {
-			var current$row = current$body.find('.aura-calendar__body-row_item').first()
-			while (current$row.length) {
-				rowIsFull = false
-				dateIsOver = false
-				var current$cell = current$row.find('.aura-calendar__body-cell_item').first()
-				while (current$cell.length) {
-					var cellDate = getMonthDateFrom$cell(current$cell)
-					if (!(datesComparator(cellDate, firstCellDate) < 0)) {
-						if (datesComparator(cellDate, lastCellDate) > 0) {
-							dateIsOver = true
-							break
-						}
-						if (!current$cell.is(':empty')) {
-							rowIsFull = true
+				return $table
+			},
+			get$table: function (context) {
+				return $('<table/>')
+					.addClass('aura-calendar__table')
+					.append(this.get$head(context), this.get$bodies(context))
+			},
+			get$head: function (context) {
+				var date = context.state.date
+				var year = date.getFullYear()
+				return $('<thead/>')
+					.addClass('aura-calendar__head')
+					.append(AuraCalendar.NAMES.MONTHES.reduce(function ($acc, name, i) {
+						$('<th/>')
+							.addClass('aura-calendar__head-cell aura-calendar__head-cell_year')
+							.attr('data-year', year)
+							.attr('data-month', i)
+							.text(name)
+							.appendTo($acc)
+						return $acc
+					}, $('<tr/>')
+						.addClass('aura-calendar__head-row aura-calendar__head-row_year'))
+						.off('click').click(function (e) {
+							var date = new Date(context.state.date.getFullYear(), $(e.target).data('month'), 1)
+							var view = 'month'
+							context.setState({ date: date, view: view })
+						}))
+			},
+			get$bodies: function () {
+				return [this.get$body()]
+			},
+			get$body: function () {
+				return $('<tbody/>')
+					.addClass('aura-calendar__body aura-calendar__body_year')
+					.html(this.get$bodyRow())
+			},
+			get$bodyRow: function () {
+				return $('<tr/>')
+					.addClass('aura-calendar__body-row_item aura-calendar__body-row_year')
+					.html(AuraCalendar.NAMES.MONTHES.reduce(function (acc, el, i) {
+						return acc.concat($('<td/>')
+							.addClass('aura-calendar__body-cell_year  aura-calendar__body-cell_item')
+							.attr('data-month', i))
+					}, []))
+			},
+			getCellsToInsert: function (context, firstCellDate, lastCellDate) {
+				var $table = context.$.table
+				var $rows = $table.find('.aura-calendar__body-row_item')
+				var cellsToInsertItem = []
+				var firstMonth = firstCellDate.getMonth()
+				var lastMonth = lastCellDate.getMonth()
+				$rows.each(function (i, row) {
+					var $row = $(row)
+					var currentMonth = firstMonth
+					do {
+						var $cell = $row.find('[data-month="' + currentMonth + '"]')
+						if ($cell.is(':empty')) {
+							cellsToInsertItem.push($cell)
+						} else {
+							cellsToInsertItem = []
 							break;
 						}
-					}
-					current$cell = current$cell.next()
-				}
-				if (dateIsOver || !rowIsFull) break
-				current$row = current$row.next()
-			}
-
-			if (!current$row.length) {
-				current$row = getMonth$bodyRow(getMonthDateFrom$cell(current$body
-					.find('.aura-calendar__body-cell_item').first()))
-					.appendTo(current$body)
-			}
-
-			current$cell = current$row.find('.aura-calendar__body-cell_item').first()
-
-			dateIsOver = false
-			var titles = []
-			while (current$cell.length) {
-				var cellDate = getMonthDateFrom$cell(current$cell)
-				if (!(datesComparator(cellDate, firstCellDate) < 0)) {
-					if (datesComparator(cellDate, lastCellDate) > 0) {
-						dateIsOver = true
-						break
-					}
-					data.item.push(current$cell)
-					titles.push(current$cell)
-				}
-				current$cell = current$cell.next()
-			}
-			if (titles.length) data.title.push(titles)
-			if (dateIsOver) break
-			current$body = current$body.next()
-		}
-		return data
-	}
-
-	function buildMonth$table() {
-		var it = this
-		var $table = getMonth$table.call(this)
-		var now = new Date()
-		if (this.isTodayInView) {
-			$table.find(getDateQuery({
-				year: now.getFullYear(),
-				month: now.getMonth(),
-				day: now.getDate(),
-				el: '.aura-calendar__body-cell_head'
-			}))
-				.addClass('aura-calendar__body-cell_active')
-			$table.find(getDateQuery({
-				year: now.getFullYear(),
-				month: now.getMonth(),
-				weekDay: AuraCalendar.utilities.shiftSunday(now.getDay()),
-				el: '.aura-calendar__head-cell'
-			}))
-				.addClass('aura-calendar__head-cell_active-horizontal')
-		}
-		if (this.params.parent.hasView('week')) {
-			$table.find('.aura-calendar__body-row_head')
-				.addClass('aura-calendar__body-row_head_clickable')
-				.off('click')
-				.click(function (e) {
-					var $firstCell = $(this).find('.aura-calendar__body-cell_month').first()
-					var date = new Date($firstCell.attr('data-year'), $firstCell.attr('data-month'), $firstCell.attr('data-day'))
-					it.setState({
-						view: 'week',
-						date: date
-					})
+					} while (currentMonth++ < lastMonth)
+					if (cellsToInsertItem.length) return false
 				})
 
-		}
-		return $table
-	}
-
-	function getMonth$table() {
-		return $('<table/>')
-			.addClass('aura-calendar__table')
-			.append(getMonth$head.call(this), getMonth$bodies.call(this))
-	}
-
-	function getMonth$head() {
-		var date = this.state.date
-		var year = date.getFullYear()
-		var month = date.getMonth()
-		return $('<thead/>')
-			.addClass('aura-calendar__head')
-			.html(this.NAMES.DAYS.reduce(function ($acc, name, i) {
-				return $acc.append($('<th/>')
-					.addClass('aura-calendar__head-cell')
-					.attr('data-year', year)
-					.attr('data-month', month)
-					.attr('data-week-day', i)
-					.html(name)
-				)
-			}, $('<tr/>').addClass('aura-calendar__head-row')))
-	}
-
-	function getMonth$bodies() {
-		var it = this
-		return this.datesRange.reduce(function (acc, el, i) {
-			if (!(i % 7)) acc.push(getMonth$body.call(it, el))
-			return acc
-		}, [])
-	}
-
-	function getMonth$body(date) {
-		return $('<tbody/>')
-			.addClass('aura-calendar__body aura-calendar__body_month')
-			.html([getMonth$bodyHead.call(this, date), getMonth$bodyRow.call(this, date)])
-	}
-
-	function getMonth$bodyHead(date) {
-		var tds = []
-		var currentDate = new Date(date)
-		for (var i = 0; i < 7; i++) {
-			var mutedClass = currentDate.getMonth() === this.state.date.getMonth()
-				&& currentDate.getFullYear() === this.state.date.getFullYear() ? '' : ' aura-calendar__body-cell_muted'
-			tds.push(getHead$bodyCell(currentDate, mutedClass))
-			currentDate.setDate(currentDate.getDate() + 1)
-		}
-
-		return $('<tr/>')
-			.addClass('aura-calendar__body-row_head')
-			.html(tds)
-	}
-
-	function getHead$bodyCell(date, mutedClass) {
-		var day = date.getDate()
-		return $('<td/>')
-			.addClass('aura-calendar__body-cell_month  aura-calendar__body-cell_head' + mutedClass)
-			.attr('data-year', date.getFullYear())
-			.attr('data-month', date.getMonth())
-			.attr('data-day', day)
-			.html($('<div/>')
-				.addClass('aura-calendar__day-number')
-				.html(day)
-			)
-	}
-
-	function getMonth$bodyRow(date) {
-		var tds = []
-		var currentDate = new Date(date)
-		for (var i = 0; i < 7; i++) {
-			tds.push(getMonth$bodyCell(currentDate))
-			currentDate.setDate(currentDate.getDate() + 1)
-		}
-		return $('<tr/>')
-			.addClass('aura-calendar__body-row_item aura-calendar__body-row_month')
-			.html(tds)
-	}
-
-	function getMonth$bodyCell(date) {
-		return $('<td/>')
-			.addClass('aura-calendar__body-cell_month  aura-calendar__body-cell_item')
-			.attr('data-year', date.getFullYear())
-			.attr('data-month', date.getMonth())
-			.attr('data-day', date.getDate())
-	}
-
-	function getMonthDateFrom$cell($cell) {
-		return new Date(
-			$cell.attr('data-year'),
-			$cell.attr('data-month'),
-			$cell.attr('data-day')
-		)
-	}
-
-	// WEEK
-
-	function getWeekCellsToInsert(firstCellDate, lastCellDate) {
-		var rowIsFull, dateIsOver
-		var datesComparator = AuraCalendar.utilities.datesComparator.week
-		var data = {
-			item: [],
-			title: []
-		}
-		var current$body = this.$.table.find(getDateQuery({
-			el: '.aura-calendar__body-cell_item',
-			year: firstCellDate.getFullYear(),
-			month: firstCellDate.getMonth(),
-			day: firstCellDate.getDate(),
-			hour: firstCellDate.getHours()
-		}))
-			.parents('.aura-calendar__body')
-
-		while (current$body.length) {
-			var current$row = current$body.find('.aura-calendar__body-row_item').first()
-			while (current$row.length) {
-				rowIsFull = false
-				dateIsOver = false
-				var current$cell = current$row.find('.aura-calendar__body-cell_item').first()
-				while (current$cell.length) {
-					var cellDate = getWeekDateFrom$cell(current$cell)
-					if (!(datesComparator(cellDate, firstCellDate) < 0)) {
-						if (datesComparator(cellDate, lastCellDate) > 0) {
-							dateIsOver = true
-							break
-						}
-						if (!current$cell.is(':empty')) {
-							rowIsFull = true
-							break;
-						}
-					}
-					current$cell = current$cell.next()
+				if (!cellsToInsertItem.length) {
+					var new$row = this.get$bodyRow()
+					$table.find('.aura-calendar__body').append(new$row)
+					var currentMonth = firstMonth
+					do {
+						var $cell = new$row.find('[data-month="' + currentMonth + '"]')
+						cellsToInsertItem.push($cell)
+					} while (currentMonth++ < lastMonth)
 				}
-				if (dateIsOver || !rowIsFull) break
-				current$row = current$row.next()
-			}
-
-			if (!current$row.length) {
-				current$row = getWeek$bodyRow.call(this, getWeekDateFrom$cell(current$body
-					.find('.aura-calendar__body-cell_item').first()))
-					.appendTo(current$body)
-			}
-
-			current$cell = current$row.find('.aura-calendar__body-cell_item').first()
-
-			dateIsOver = false
-			var titles = []
-			while (current$cell.length) {
-				var cellDate = getWeekDateFrom$cell(current$cell)
-
-				if (!(datesComparator(cellDate, firstCellDate) < 0)) {
-					if (datesComparator(cellDate, lastCellDate) > 0) {
-						dateIsOver = true
-						break
-					}
-					data.item.push(current$cell)
-					titles.push(current$cell)
+				return {
+					item: cellsToInsertItem,
+					title: [cellsToInsertItem]
 				}
-				current$cell = current$cell.next()
 			}
-			if (titles.length) data.title.push(titles)
-			if (dateIsOver) break
-			current$body = current$body.next()
-		}
+		},
+		month: {
+			build: function (context) {
+				console.log(context.params.parent.datesRange);
 
-		return data
-	}
+				var $table = this.get$table(context)
+				var now = new Date()
+				if (context.params.parent.isTodayInView) {
+					$table.find(getDateQuery({
+						year: now.getFullYear(),
+						month: now.getMonth(),
+						day: now.getDate(),
+						el: '.aura-calendar__body-cell_head'
+					}))
+						.addClass('aura-calendar__body-cell_active')
+					$table.find(getDateQuery({
+						year: now.getFullYear(),
+						month: now.getMonth(),
+						weekDay: AuraCalendar.utilities.shiftSunday(now.getDay()),
+						el: '.aura-calendar__head-cell'
+					}))
+						.addClass('aura-calendar__head-cell_active-horizontal')
+				}
+				if (context.params.parent.hasView('week')) {
+					$table.find('.aura-calendar__body-row_head')
+						.addClass('aura-calendar__body-row_head_clickable')
+						.find('.aura-calendar__body-cell_head')
+						.off('click')
+						.click(function (e) {
+							var $cell = $(this)
+							var date = new Date($cell.attr('data-year'), $cell.attr('data-month'), $cell.attr('data-day'))
+							context.setState({
+								view: 'week',
+								date: date
+							})
+						})
 
-	function buildWeek$table() {
-		var $table = getWeek$table.call(this)
-		var now = new Date()
-		if (this.isTodayInView) {
-			$table.find(getDateQuery({
-				year: now.getFullYear(),
-				month: now.getMonth(),
-				day: now.getDate(),
-				el: '.aura-calendar__body-cell_head_first'
-			}))
-				.addClass('aura-calendar__head-cell_active-vertical')
+				}
+				return $table
+			},
+			get$table: function (context) {
+				return $('<table/>')
+					.addClass('aura-calendar__table')
+					.append(this.get$head(context), this.get$bodies(context))
+			},
+			get$head: function (context) {
+				var date = context.state.date
+				var year = date.getFullYear()
+				var month = date.getMonth()
+				return $('<thead/>')
+					.addClass('aura-calendar__head')
+					.html(AuraCalendar.NAMES.DAYS.reduce(function ($acc, name, i) {
+						return $acc.append($('<th/>')
+							.addClass('aura-calendar__head-cell')
+							.attr('data-year', year)
+							.attr('data-month', month)
+							.attr('data-week-day', i)
+							.html(name)
+						)
+					}, $('<tr/>').addClass('aura-calendar__head-row')))
+			},
+			get$bodies: function (context) {
+				var it = this
+				return context.params.parent.datesRange.reduce(function (acc, date, i) {
+					if (!(i % 7)) acc.push(it.get$body(context, date))
+					return acc
+				}, [])
+			},
+			get$body: function (context, date) {
+				return $('<tbody/>')
+					.addClass('aura-calendar__body aura-calendar__body_month')
+					.html([this.get$bodyHead(context, date), this.get$bodyRow(context, date)])
+			},
+			get$bodyHead: function (context, date) {
+				var tds = []
+				var contextDate = context.state.date
+				var currentDate = new Date(date)
+				for (var i = 0; i < 7; i++) {
+					var mutedClass = currentDate.getMonth() === contextDate.getMonth()
+						&& currentDate.getFullYear() === contextDate.getFullYear() ? '' : ' aura-calendar__body-cell_muted'
+					tds.push(this.getHead$bodyCell(currentDate, mutedClass))
+					currentDate.setDate(currentDate.getDate() + 1)
+				}
 
-			$table.find(getDateQuery({
-				year: now.getFullYear(),
-				month: now.getMonth(),
-				hour: now.getHours(),
-				el: '.aura-calendar__head-cell'
-			}))
-				.addClass('aura-calendar__head-cell_active-horizontal')
-			$table.find(getDateQuery({
-				year: now.getFullYear(),
-				month: now.getMonth(),
-				day: now.getDate(),
-				hour: now.getHours(),
-				el: '.aura-calendar__body-cell_head_tail'
-			}))
-				.find('.aura-calendar__body-cell_head_week_hour')
-				.addClass('aura-calendar__head-cell_active-horizontal')
-		}
-		return $table
-	}
-
-	function getWeek$table() {
-		return $('<table/>')
-			.addClass('aura-calendar__table')
-			.append(getWeek$head.call(this), getWeek$bodies.call(this))
-	}
-
-	function getWeek$head() {
-		var date = this.state.date
-		var year = date.getFullYear()
-		var month = date.getMonth()
-		return $('<thead/>')
-			.addClass('aura-calendar__head')
-			.html(this.NAMES.HOURS.reduce(function ($acc, name, i) {
-				return $acc.append($('<th/>')
-					.addClass('aura-calendar__head-cell aura-calendar__head-cell_week')
-					.attr('data-year', year)
-					.attr('data-month', month)
-					.attr('data-hour', i)
-					.html(name)
-					.append($('<span/>')
-						.addClass('aura-calendar__head-cell_sup')
-						.html(':00')
-					))
-			}, $('<tr/>')
-				.addClass('aura-calendar__head-row')
-				.html($('<th/>')
-					.addClass('aura-calendar__head-cell aura-calendar__head-cell_week aura-calendar__head-cell_first'))))
-	}
-
-	function getWeek$bodies() {
-		var bodies = []
-		for (var i = 0; i < 7; i++) {
-			bodies.push(getWeek$body.call(this, this.datesRange[i]))
-		}
-		return bodies
-	}
-
-	function getWeek$body(date) {
-		return $('<tbody/>')
-			.addClass('aura-calendar__body aura-calendar__body_week')
-			.html([getWeek$headRow.call(this, date), getWeek$bodyRow.call(this, date)])
-	}
-
-	function getWeek$headRow(date) {
-		var day = AuraCalendar.utilities.shiftSunday(date.getDay())
-		var currentDate = new Date(date)
-		var mutedClass = currentDate.getFullYear() === this.state.date.getFullYear()
-			&& currentDate.getMonth() === this.state.date.getMonth() ? '' : ' aura-calendar__body-cell_muted'
-		var tds = [
-			$('<td/>')
-				.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_first' + mutedClass)
-				.attr('data-year', date.getFullYear())
-				.attr('data-month', date.getMonth())
-				.attr('data-day', date.getDate())
-				.attr('data-week-day', day)
-				.html($('<div/>')
-					.addClass('aura-calendar__body-cell_week-name')
-					.html(this.NAMES.DAYS[day]))
-				.append($('<div/>')
-					.addClass('aura-calendar__body-cell_week-day')
-					.html(currentDate.getDate()))
-		]
-		for (var i = 0; i < 24; i++) {
-			tds.push(getWeek$headCell.call(this, currentDate))
-			currentDate.setHours(currentDate.getHours() + 1)
-		}
-
-		return $('<tr/>')
-			.addClass('aura-calendar__body-row_head aura-calendar__body-row_head_week')
-			.html(tds)
-	}
-
-	function getWeek$bodyRow(date) {
-		var day = AuraCalendar.utilities.shiftSunday(date.getDay())
-		var currentDate = new Date(date)
-		var tds = [$('<td/>')
-			.addClass('aura-calendar__body-cell_week-empty aura-calendar__body-cell_week')
-			.attr('data-week-day', day)]
-		var currentDate = new Date(date)
-		for (var i = 0; i < 24; i++) {
-			tds.push(getWeek$bodyCell(currentDate))
-			currentDate.setHours(currentDate.getHours() + 1)
-		}
-
-		return $('<tr/>')
-			.addClass('aura-calendar__body-row_item aura-calendar__body-row_week')
-			.html(tds)
-	}
-
-	function getWeek$headCell(date) {
-		var hours = date.getHours()
-		return $('<td/>')
-			.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_tail')
-			.attr('data-year', date.getFullYear())
-			.attr('data-month', date.getMonth())
-			.attr('data-day', date.getDate())
-			.attr('data-hour', hours)
-			.html($('<div/>')
-				.addClass('aura-calendar__body-cell_head_week_hour')
-				.html(this.NAMES.HOURS[hours])
-				.append($('<span/>')
-					.addClass('aura-calendar__head-cell_sup')
-					.html(':00')
+				return $('<tr/>')
+					.addClass('aura-calendar__body-row_head')
+					.html(tds)
+			},
+			getHead$bodyCell: function (date, mutedClass) {
+				var day = date.getDate()
+				return $('<td/>')
+					.addClass('aura-calendar__body-cell_month  aura-calendar__body-cell_head' + mutedClass)
+					.attr('data-year', date.getFullYear())
+					.attr('data-month', date.getMonth())
+					.attr('data-day', day)
+					.html($('<div/>')
+						.addClass('aura-calendar__day-number')
+						.html(day)
+					)
+			},
+			get$bodyRow: function (date) {
+				var tds = []
+				var currentDate = new Date(date)
+				for (var i = 0; i < 7; i++) {
+					tds.push(this.get$bodyCell(currentDate))
+					currentDate.setDate(currentDate.getDate() + 1)
+				}
+				return $('<tr/>')
+					.addClass('aura-calendar__body-row_item aura-calendar__body-row_month')
+					.html(tds)
+			},
+			get$bodyCell: function (date) {
+				return $('<td/>')
+					.addClass('aura-calendar__body-cell_month  aura-calendar__body-cell_item')
+					.attr('data-year', date.getFullYear())
+					.attr('data-month', date.getMonth())
+					.attr('data-day', date.getDate())
+			},
+			getDateFrom$cell: function ($cell) {
+				return new Date(
+					$cell.attr('data-year'),
+					$cell.attr('data-month'),
+					$cell.attr('data-day')
 				)
-			)
+			},
+			getCellsToInsert: function (context, firstCellDate, lastCellDate) {
+				var rowIsFull, dateIsOver
+				var datesComparator = AuraCalendar.utilities.datesComparator.month
+				var data = {
+					item: [],
+					title: []
+				}
+				var current$body = context.$.table.find(getDateQuery({
+					el: '.aura-calendar__body-cell_head',
+					year: firstCellDate.getFullYear(),
+					month: firstCellDate.getMonth(),
+					day: firstCellDate.getDate()
+				}))
+					.parents('.aura-calendar__body')
+
+				while (current$body.length) {
+					var current$row = current$body.find('.aura-calendar__body-row_item').first()
+					while (current$row.length) {
+						rowIsFull = false
+						dateIsOver = false
+						var current$cell = current$row.find('.aura-calendar__body-cell_item').first()
+						while (current$cell.length) {
+							var cellDate = this.getDateFrom$cell(current$cell)
+							if (!(datesComparator(cellDate, firstCellDate) < 0)) {
+								if (datesComparator(cellDate, lastCellDate) > 0) {
+									dateIsOver = true
+									break
+								}
+								if (!current$cell.is(':empty')) {
+									rowIsFull = true
+									break;
+								}
+							}
+							current$cell = current$cell.next()
+						}
+						if (dateIsOver || !rowIsFull) break
+						current$row = current$row.next()
+					}
+
+					if (!current$row.length) {
+						current$row = this.get$bodyRow(this.getDateFrom$cell(current$body
+							.find('.aura-calendar__body-cell_item').first()))
+							.appendTo(current$body)
+					}
+
+					current$cell = current$row.find('.aura-calendar__body-cell_item').first()
+
+					dateIsOver = false
+					var titles = []
+					while (current$cell.length) {
+						var cellDate = this.getDateFrom$cell(current$cell)
+						if (!(datesComparator(cellDate, firstCellDate) < 0)) {
+							if (datesComparator(cellDate, lastCellDate) > 0) {
+								dateIsOver = true
+								break
+							}
+							data.item.push(current$cell)
+							titles.push(current$cell)
+						}
+						current$cell = current$cell.next()
+					}
+					if (titles.length) data.title.push(titles)
+					if (dateIsOver) break
+					current$body = current$body.next()
+				}
+				return data
+			}
+		},
+		week: {
+			build: function (context) {
+				var $table = this.get$table(context)
+				var now = new Date()
+				if (context.params.parent.isTodayInView) {
+					$table.find(getDateQuery({
+						year: now.getFullYear(),
+						month: now.getMonth(),
+						day: now.getDate(),
+						el: '.aura-calendar__body-cell_head_first'
+					}))
+						.addClass('aura-calendar__head-cell_active-vertical')
+
+					$table.find(getDateQuery({
+						year: now.getFullYear(),
+						month: now.getMonth(),
+						hour: now.getHours(),
+						el: '.aura-calendar__head-cell'
+					}))
+						.addClass('aura-calendar__head-cell_active-horizontal')
+					$table.find(getDateQuery({
+						year: now.getFullYear(),
+						month: now.getMonth(),
+						day: now.getDate(),
+						hour: now.getHours(),
+						el: '.aura-calendar__body-cell_head_tail'
+					}))
+						.find('.aura-calendar__body-cell_head_week_hour')
+						.addClass('aura-calendar__head-cell_active-horizontal')
+				}
+				return $table
+			},
+			get$table: function (context) {
+				return $('<table/>')
+					.addClass('aura-calendar__table')
+					.append(this.get$head(context), this.get$bodies(context))
+			},
+			get$head: function (context) {
+				var date = context.state.date
+				var year = date.getFullYear()
+				var month = date.getMonth()
+				return $('<thead/>')
+					.addClass('aura-calendar__head')
+					.html(AuraCalendar.NAMES.HOURS.reduce(function ($acc, name, i) {
+						return $acc.append($('<th/>')
+							.addClass('aura-calendar__head-cell aura-calendar__head-cell_week')
+							.attr('data-year', year)
+							.attr('data-month', month)
+							.attr('data-hour', i)
+							.html(name)
+							.append($('<span/>')
+								.addClass('aura-calendar__head-cell_sup')
+								.html(':00')
+							))
+					}, $('<tr/>')
+						.addClass('aura-calendar__head-row')
+						.html($('<th/>')
+							.addClass('aura-calendar__head-cell aura-calendar__head-cell_week aura-calendar__head-cell_first'))))
+			},
+			get$bodies: function (context) {
+				var bodies = []
+				for (var i = 0; i < 7; i++) {
+					bodies.push(this.get$body(context, i))
+				}
+				return bodies
+			},
+			get$body: function (context, i) {
+				var date = context.params.parent.datesRange[i]
+				return $('<tbody/>')
+					.addClass('aura-calendar__body aura-calendar__body_week')
+					.html([this.get$headRow(context, date), this.get$bodyRow(date)])
+			},
+			get$headRow: function (context, date) {
+				var day = AuraCalendar.utilities.shiftSunday(date.getDay())
+				var contextDate = context.state.date
+				var currentDate = new Date(date)
+				var mutedClass = currentDate.getFullYear() === contextDate.getFullYear()
+					&& currentDate.getMonth() === contextDate.getMonth() ? '' : ' aura-calendar__body-cell_muted'
+				var tds = [
+					$('<td/>')
+						.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_first' + mutedClass)
+						.attr('data-year', date.getFullYear())
+						.attr('data-month', date.getMonth())
+						.attr('data-day', date.getDate())
+						.attr('data-week-day', day)
+						.html($('<div/>')
+							.addClass('aura-calendar__body-cell_week-name')
+							.html(AuraCalendar.NAMES.DAYS[day]))
+						.append($('<div/>')
+							.addClass('aura-calendar__body-cell_week-day')
+							.html(currentDate.getDate()))
+				]
+				for (var i = 0; i < 24; i++) {
+					tds.push(this.get$headCell(currentDate))
+					currentDate.setHours(currentDate.getHours() + 1)
+				}
+
+				return $('<tr/>')
+					.addClass('aura-calendar__body-row_head aura-calendar__body-row_head_week')
+					.html(tds)
+			},
+			get$bodyRow: function (date) {
+				var day = AuraCalendar.utilities.shiftSunday(date.getDay())
+				var currentDate = new Date(date)
+				var tds = [$('<td/>')
+					.addClass('aura-calendar__body-cell_week-empty aura-calendar__body-cell_week')
+					.attr('data-week-day', day)]
+				var currentDate = new Date(date)
+				for (var i = 0; i < 24; i++) {
+					tds.push(this.get$bodyCell(currentDate))
+					currentDate.setHours(currentDate.getHours() + 1)
+				}
+
+				return $('<tr/>')
+					.addClass('aura-calendar__body-row_item aura-calendar__body-row_week')
+					.html(tds)
+			},
+			get$headCell: function (date) {
+				var hours = date.getHours()
+				return $('<td/>')
+					.addClass('aura-calendar__body-cell_head_week aura-calendar__body-cell_head aura-calendar__body-cell_head_tail')
+					.attr('data-year', date.getFullYear())
+					.attr('data-month', date.getMonth())
+					.attr('data-day', date.getDate())
+					.attr('data-hour', hours)
+					.html($('<div/>')
+						.addClass('aura-calendar__body-cell_head_week_hour')
+						.html(AuraCalendar.NAMES.HOURS[hours])
+						.append($('<span/>')
+							.addClass('aura-calendar__head-cell_sup')
+							.html(':00')
+						)
+					)
+			},
+			get$bodyCell: function (date) {
+				return $('<td/>')
+					.addClass('aura-calendar__body-cell_week  aura-calendar__body-cell_item')
+					.attr('data-year', date.getFullYear())
+					.attr('data-month', date.getMonth())
+					.attr('data-day', date.getDate())
+					.attr('data-hour', date.getHours())
+			},
+			getDateFrom$cell: function ($cell) {
+				return new Date(
+					$cell.attr('data-year'),
+					$cell.attr('data-month'),
+					$cell.attr('data-day'),
+					$cell.attr('data-hour')
+				)
+			},
+			getCellsToInsert: function (context, firstCellDate, lastCellDate) {
+				var rowIsFull, dateIsOver
+				var datesComparator = AuraCalendar.utilities.datesComparator.week
+				var data = {
+					item: [],
+					title: []
+				}
+				var current$body = context.$.table.find(getDateQuery({
+					el: '.aura-calendar__body-cell_item',
+					year: firstCellDate.getFullYear(),
+					month: firstCellDate.getMonth(),
+					day: firstCellDate.getDate(),
+					hour: firstCellDate.getHours()
+				}))
+					.parents('.aura-calendar__body')
+
+				while (current$body.length) {
+					var current$row = current$body.find('.aura-calendar__body-row_item').first()
+					while (current$row.length) {
+						rowIsFull = false
+						dateIsOver = false
+						var current$cell = current$row.find('.aura-calendar__body-cell_item').first()
+						while (current$cell.length) {
+							var cellDate = this.getDateFrom$cell(current$cell)
+							if (!(datesComparator(cellDate, firstCellDate) < 0)) {
+								if (datesComparator(cellDate, lastCellDate) > 0) {
+									dateIsOver = true
+									break
+								}
+								if (!current$cell.is(':empty')) {
+									rowIsFull = true
+									break;
+								}
+							}
+							current$cell = current$cell.next()
+						}
+						if (dateIsOver || !rowIsFull) break
+						current$row = current$row.next()
+					}
+
+					if (!current$row.length) {
+						current$row = this.get$bodyRow(
+							this.getDateFrom$cell(
+								current$body.find('.aura-calendar__body-cell_item').first()
+							)
+						)
+							.appendTo(current$body)
+					}
+
+					current$cell = current$row.find('.aura-calendar__body-cell_item').first()
+
+					dateIsOver = false
+					var titles = []
+					while (current$cell.length) {
+						var cellDate = this.getDateFrom$cell(current$cell)
+
+						if (!(datesComparator(cellDate, firstCellDate) < 0)) {
+							if (datesComparator(cellDate, lastCellDate) > 0) {
+								dateIsOver = true
+								break
+							}
+							data.item.push(current$cell)
+							titles.push(current$cell)
+						}
+						current$cell = current$cell.next()
+					}
+					if (titles.length) data.title.push(titles)
+					if (dateIsOver) break
+					current$body = current$body.next()
+				}
+				return data
+			},
+		}
 	}
-
-	function getWeek$bodyCell(date) {
-		return $('<td/>')
-			.addClass('aura-calendar__body-cell_week  aura-calendar__body-cell_item')
-			.attr('data-year', date.getFullYear())
-			.attr('data-month', date.getMonth())
-			.attr('data-day', date.getDate())
-			.attr('data-hour', date.getHours())
-	}
-
-	function getWeekDateFrom$cell($cell) {
-		return new Date(
-			$cell.attr('data-year'),
-			$cell.attr('data-month'),
-			$cell.attr('data-day'),
-			$cell.attr('data-hour')
-		)
-	}
-
-
 	return Grid
 }())
 
@@ -1012,11 +983,6 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 	}
 
 	DatePicker.prototype = {
-		formats: {
-			year: 'yyyy',
-			month: ' yyyy',
-			week: ' yyyy'
-		},
 		setState: function (state) {
 			this.params.parent.state = state
 		},
@@ -1033,19 +999,15 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 			this.params.parent.params.on.previous()
 		},
 		stateChangeHandler: function () {
-			this.$.date.html(getDateTitle.call(this))
+			this.$.date.html(periodDispatcher[this.state.view].getDateTitle(this.state.date))
 		}
 	}
 	//Internal
-	function getDateTitle() {
-		return this.state.date.format((this.state.view === 'week' || this.state.view === 'month'
-			? this.params.parent.MONTHES[this.state.date.getMonth()]
-			: '') + this.formats[this.state.view])
-	}
+
 	function buildMainView() {
 		this.$.date = $('<div/>')
 			.addClass('aura-calendar-date-picker__date')
-			.html(getDateTitle.call(this))
+			.html(periodDispatcher[this.state.view].getDateTitle(this.state.date))
 		this.$.left = $('<div/>')
 			.addClass('aura-calendar-date-picker__arrow aura-calendar-date-picker__arrow_left')
 			.off('click')
@@ -1061,15 +1023,39 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 			.append(this.$.date)
 			.append(this.$.right)
 	}
-
 	function move(direction) {
-		var date = new Date(this.state.date)
-		switch (this.state.view) {
-			case 'month': date.setMonth(date.getMonth() + direction); break
-			case 'year': date.setFullYear(date.getFullYear() + direction); break
-			case 'week': date.setDate(date.getDate() + direction * 7); break
-		}
+		var date = periodDispatcher[this.state.view].getDateByDirection(new Date(this.state.date), direction)
 		this.setState({ date: date })
+	}
+
+	var periodDispatcher = {
+		year: {
+			getDateByDirection: function (date, direction) {
+				date.setFullYear(date.getFullYear() + direction)
+				return date
+			},
+			getDateTitle: function (date) {
+				return date.format(AuraCalendar.FORMATS.year)
+			}
+		},
+		month: {
+			getDateByDirection: function (date, direction) {
+				date.setMonth(date.getMonth() + direction)
+				return date
+			},
+			getDateTitle: function (date) {
+				return date.format(AuraCalendar.NAMES.MONTHES[date.getMonth()] + AuraCalendar.FORMATS.month)
+			}
+		},
+		week: {
+			getDateByDirection: function (date, direction) {
+				date.setDate(date.getDate() + direction * 7)
+				return date
+			},
+			getDateTitle: function (date) {
+				return date.format(AuraCalendar.NAMES.MONTHES[date.getMonth()] + AuraCalendar.FORMATS.week)
+			}
+		}
 	}
 	return DatePicker
 }())
@@ -1338,7 +1324,7 @@ AuraCalendar.utilities = {
 	},
 	firstDayInMonth: function (date) {
 		var date = new Date(date)
-		date.setDate(0)
+		date.setDate(1)
 		return AuraCalendar.utilities.shiftSunday(date.getDay())
 	},
 	lastDayInMonth: function (date) {
@@ -1384,8 +1370,11 @@ AuraCalendar.utilities = {
 			)
 				.getTime()
 
-			return firstTime < secondTime ? -1
-				: firstTime > secondTime ? 1 : 0
+			return firstTime < secondTime
+				? -1
+				: firstTime > secondTime
+					? 1
+					: 0
 
 		},
 		week: function (firstDate, secondDate) {

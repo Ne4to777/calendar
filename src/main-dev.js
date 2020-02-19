@@ -377,8 +377,8 @@ var event = {
 		}
 	}
 }
-var mode = 'week'
-
+var mode = 'month'
+// console.log(AuraCalendar);
 var calendar = new AuraCalendar({
 	container: '#calendar',
 	view: mode,
@@ -400,6 +400,7 @@ var calendar = new AuraCalendar({
 		event.remove()
 	}
 })
+
 
 console.log(calendar)
 window.auraCalendar = calendar
