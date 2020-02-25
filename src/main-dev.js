@@ -215,13 +215,13 @@ var event = {
 		bulk: function () {
 			return [
 				this.single(),
-				this.inside(),
-				this.long(),
-				this.pre(),
-				this.post(),
-				this.both(),
-				this.before(),
-				this.after()
+				// this.inside(),
+				// this.long(),
+				// this.pre(),
+				// this.post(),
+				// this.both(),
+				// this.before(),
+				// this.after()
 			]
 		},
 		custom: function (params) {
@@ -499,7 +499,7 @@ var event = {
 		}
 	}
 }
-var mode = 'day'
+var mode = 'month'
 // console.log(AuraCalendar);
 var calendar = new AuraCalendar({
 	container: '#calendar',

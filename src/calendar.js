@@ -119,7 +119,7 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 			.click(this.setState.bind(this, { view: 'week' }))
 		this.$.buttons.today = $('<div/>')
 			.addClass('aura-calendar__button aura-calendar__button_today')
-			.text('Текущая дата')
+			.text('Сегодня')
 			.off('click')
 			.click(this.setState.bind(this, { date: new Date }))
 		this.$.buttons.container
@@ -215,16 +215,16 @@ var AuraCalendar = (function AURA_CALENDAR_MODULE() {
 		})
 	}
 	function updateYearButton() {
-		this.$.buttons.year[periodDispatcher[this.state.view].yearButtonVisible ? 'show' : 'hide']()
+		this.$.buttons.year[periodDispatcher[this.state.view].yearButtonVisible ? 'removeClass' : 'addClass']('display_none')
 	}
 	function updateMonthButton() {
-		this.hasView('week') && this.$.buttons.month[periodDispatcher[this.state.view].monthButtonVisible ? 'show' : 'hide']()
+		this.hasView('week') && this.$.buttons.month[periodDispatcher[this.state.view].monthButtonVisible ? 'removeClass' : 'addClass']('display_none')
 	}
 	function updateWeekButton() {
-		this.hasView('day') && this.$.buttons.week[periodDispatcher[this.state.view].weekButtonVisible ? 'show' : 'hide']()
+		this.hasView('day') && this.$.buttons.week[periodDispatcher[this.state.view].weekButtonVisible ? 'removeClass' : 'addClass']('display_none')
 	}
 	function updateTodayButton() {
-		this.$.buttons.today[this.isTodayInView ? 'hide' : 'show']()
+		this.$.buttons.today[this.isTodayInView ? 'addClass' : 'removeClass']('display_none')
 	}
 	function getEventIteratorInstance(item) {
 		return item instanceof AuraCalendar.EventIterator
@@ -693,7 +693,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 						.html(day)
 					)
 			},
-			get$bodyRow: function (date) {
+			get$bodyRow: function (context, date) {
 				var tds = []
 				var currentDate = new Date(date)
 				for (var i = 0; i < 7; i++) {
@@ -732,7 +732,6 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 					day: firstCellDate.getDate()
 				}))
 					.parents('.aura-calendar__body')
-
 				while (current$body.length) {
 					var current$row = current$body.find('.aura-calendar__body-row_item').first()
 					while (current$row.length) {
@@ -758,7 +757,7 @@ AuraCalendar.Grid = (function GRID_MODULE() {
 					}
 
 					if (!current$row.length) {
-						current$row = this.get$bodyRow(this.getDateFrom$cell(current$body
+						current$row = this.get$bodyRow(context, this.getDateFrom$cell(current$body
 							.find('.aura-calendar__body-cell_item').first()))
 							.appendTo(current$body)
 					}
@@ -1256,8 +1255,11 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 						.html(AuraCalendar.NAMES.MONTHES[date.getMonth()])
 					)
 					.append($('<div/>')
-						.addClass('aura-calendar-date-picker__year')
-						.html(date.getFullYear())
+						.addClass('aura-calendar-date-picker__year-week-container')
+						.append($('<div/>')
+							.addClass('aura-calendar-date-picker__year')
+							.html(date.getFullYear())
+						)
 					)
 			}
 		},
@@ -1276,8 +1278,11 @@ AuraCalendar.DatePicker = (function DATE_PICKER_MODULE() {
 						.html(AuraCalendar.NAMES.MONTHES[date.getMonth()])
 					)
 					.append($('<div/>')
-						.addClass('aura-calendar-date-picker__year')
-						.html(date.getFullYear())
+						.addClass('aura-calendar-date-picker__year-week-container')
+						.append($('<div/>')
+							.addClass('aura-calendar-date-picker__year')
+							.html(date.getFullYear())
+						)
 					)
 			}
 		},

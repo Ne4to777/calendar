@@ -400,14 +400,18 @@ table {
 	display: inline-block;
 	font-size: 26px;
 	font-weight: 300;
-	margin-right: 10px;
 	vertical-align: middle;
 	width: 118px;
 }
 
+.aura-calendar-date-picker__year-week-container .aura-calendar-date-picker__year {
+	font-size: 12px;
+}
+
 .aura-calendar-date-picker__year {
 	display: inline-block;
-	font-size: 12px;
+	font-size: 26px;
+	font-weight: 300;
 }
 
 .aura-calendar-date-picker__week-day {
@@ -468,4 +472,8 @@ table {
 
 .no-wrap {
 	white-space: nowrap;
+}
+
+.display_none {
+	display: none !important;
 }
