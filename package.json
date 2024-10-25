@@ -15,7 +15,7 @@
     "jquery": "^3.4.1",
     "robocopy": "^0.1.16",
     "stylus-loader": "^3.0.2",
-    "vue": "^2.6.10",
+    "vue": "^3.0.0",
     "vue-cli": "^2.9.6"
   },
   "devDependencies": {
